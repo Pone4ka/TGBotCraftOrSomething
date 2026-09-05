@@ -1,5 +1,5 @@
 import { createApp } from "./app.module.ts";
-import { loadConfig } from "./config.ts";
+import { loadConfig } from "./core/config.ts";
 
 async function bootstrap(): Promise<void> {
   const config = loadConfig();

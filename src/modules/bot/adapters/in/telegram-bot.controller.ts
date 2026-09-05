@@ -1,7 +1,7 @@
 import type { Bot } from "grammy";
 import type { ReceiveMessageUseCase } from "../../application/use-cases/receive-message.use-case.ts";
 import type { ReceiveCommandUseCase } from "../../application/use-cases/receive-command.use-case.ts";
-import { DomainException } from "../../../../shared/domain/domain-exception.ts";
+import { DomainException } from "../../../../core/domain/domain-exception.ts";
 
 export class TelegramBotController {
   private readonly receiveMessage: ReceiveMessageUseCase;
@@ -21,6 +21,7 @@ export class TelegramBotController {
         this.receiveCommand.execute({
           chatId: ctx.chat.id,
           text: ctx.message.text,
+          raw: ctx.update,
         }),
       );
     });
@@ -31,6 +32,7 @@ export class TelegramBotController {
           chatId: ctx.chat.id,
           authorId: ctx.from?.id ?? 0,
           text: ctx.message.text ?? "",
+          raw: ctx.update,
         }),
       );
     });

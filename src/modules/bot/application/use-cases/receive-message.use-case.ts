@@ -5,6 +5,7 @@ export interface ReceiveMessageInput {
   chatId: number;
   authorId: number;
   text: string;
+  raw: unknown;
 }
 
 export class ReceiveMessageUseCase {

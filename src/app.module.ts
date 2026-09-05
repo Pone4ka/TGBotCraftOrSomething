@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Bot } from "grammy";
-import type { AppConfig } from "./config.ts";
+import type { AppConfig } from "./core/config.ts";
 import { createBotModule } from "./modules/bot/bot.module.ts";
 
 export interface App {
