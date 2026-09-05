@@ -1,4 +1,4 @@
-import { EmptyMessageTextException } from "./exceptions/empty-message-text.exception.ts";
+import { EmptyMessageTextException } from "./exceptions/empty-message-text.exception";
 
 export interface ChatMessageProps {
   chatId: number;

@@ -1,19 +1,14 @@
-import Fastify, { type FastifyInstance } from "fastify";
-import type { Bot } from "grammy";
-import type { AppConfig } from "./core/config.ts";
-import { createBotModule } from "./modules/bot/bot.module.ts";
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { validateConfig } from "./core/config";
+import { HealthController } from "./core/health/health.controller";
+import { BotModule } from "./modules/bot/bot.module";
 
-export interface App {
-  fastify: FastifyInstance;
-  bot: Bot;
-  startPolling: (intervalMs?: number) => Promise<NodeJS.Timeout>;
-}
-
-export function createApp(config: AppConfig): App {
-  const fastify = Fastify({ logger: true });
-  const { bot, startPolling } = createBotModule(config.botToken);
-
-  fastify.get("/health", async () => ({ status: "ok" }));
-
-  return { fastify, bot, startPolling };
-}
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, validate: validateConfig }),
+    BotModule,
+  ],
+  controllers: [HealthController],
+})
+export class AppModule {}

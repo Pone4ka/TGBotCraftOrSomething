@@ -3,18 +3,24 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/main.js",
-  "type": "module",
   "scripts": {
-    "build": "tsc",
-    "start": "node --env-file=.env dist/main.js",
-    "watch": "node --env-file=.env --experimental-strip-types --watch src/main.ts"
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch"
   },
   "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-fastify": "^11.1.6",
     "fastify": "^5.12.3",
-    "grammy": "^1.46.0"
+    "grammy": "^1.46.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
+    "@nestjs/cli": "^11.0.10",
+    "@types/node": "^22.15.0",
     "typescript": "^5.5.3"
   },
   "private": true

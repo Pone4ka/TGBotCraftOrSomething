@@ -1,5 +1,6 @@
-import { BotCommand } from "../../domain/bot-command.entity.ts";
-import type { UpdateLoggerPort } from "../ports/update-logger.port.ts";
+import { Inject, Injectable } from "@nestjs/common";
+import { BotCommand } from "../../domain/bot-command.entity";
+import { UPDATE_LOGGER_PORT, type UpdateLoggerPort } from "../ports/update-logger.port";
 
 export interface ReceiveCommandInput {
   chatId: number;
@@ -7,12 +8,11 @@ export interface ReceiveCommandInput {
   raw: unknown;
 }
 
+@Injectable()
 export class ReceiveCommandUseCase {
-  private readonly logger: UpdateLoggerPort;
-
-  constructor(logger: UpdateLoggerPort) {
-    this.logger = logger;
-  }
+  constructor(
+    @Inject(UPDATE_LOGGER_PORT) private readonly logger: UpdateLoggerPort,
+  ) {}
 
   execute(input: ReceiveCommandInput): void {
     const command = BotCommand.create(input.chatId, input.text, input.raw);

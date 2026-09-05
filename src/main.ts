@@ -1,24 +1,18 @@
-import { createApp } from "./app.module.ts";
-import { loadConfig } from "./core/config.ts";
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
+import { AppModule } from "./app.module";
 
 async function bootstrap(): Promise<void> {
-  const config = loadConfig();
-  const { fastify, bot, startPolling } = createApp(config);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ logger: true }),
+  );
 
-  await bot.init();
-  await fastify.listen({ port: config.port, host: "0.0.0.0" });
+  app.enableShutdownHooks();
 
-  const pollingHandle = await startPolling(config.pollIntervalMs);
-  console.log(`Polling for updates every ${config.pollIntervalMs}ms`);
-
-  const shutdown = async (): Promise<void> => {
-    clearInterval(pollingHandle);
-    await fastify.close();
-    process.exit(0);
-  };
-
-  process.once("SIGINT", shutdown);
-  process.once("SIGTERM", shutdown);
+  const port = Number(process.env.PORT ?? 3000);
+  await app.listen(port, "0.0.0.0");
 }
 
 bootstrap().catch((error) => {

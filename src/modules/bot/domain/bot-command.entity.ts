@@ -1,4 +1,4 @@
-import { InvalidCommandFormatException } from "./exceptions/invalid-command-format.exception.ts";
+import { InvalidCommandFormatException } from "./exceptions/invalid-command-format.exception";
 
 export class BotCommand {
   readonly chatId: number;

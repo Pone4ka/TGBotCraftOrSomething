@@ -1,27 +1,20 @@
-import { Bot } from "grammy";
-import { ConsoleUpdateLoggerAdapter } from "./adapters/out/console-update-logger.adapter.ts";
-import { TelegramBotController } from "./adapters/in/telegram-bot.controller.ts";
-import { ReceiveMessageUseCase } from "./application/use-cases/receive-message.use-case.ts";
-import { ReceiveCommandUseCase } from "./application/use-cases/receive-command.use-case.ts";
-import { startPolling } from "./infrastructure/telegram-polling.ts";
+import { Module } from "@nestjs/common";
+import { TelegramBotController } from "./adapters/in/telegram-bot.controller";
+import { ConsoleUpdateLoggerAdapter } from "./adapters/out/console-update-logger.adapter";
+import { UPDATE_LOGGER_PORT } from "./application/ports/update-logger.port";
+import { ReceiveMessageUseCase } from "./application/use-cases/receive-message.use-case";
+import { ReceiveCommandUseCase } from "./application/use-cases/receive-command.use-case";
+import { BotLifecycleService } from "./infrastructure/bot-lifecycle.service";
+import { botProvider } from "./infrastructure/bot.provider";
 
-export interface BotModule {
-  bot: Bot;
-  startPolling: (intervalMs?: number) => Promise<NodeJS.Timeout>;
-}
-
-export function createBotModule(token: string): BotModule {
-  const bot = new Bot(token);
-
-  const logger = new ConsoleUpdateLoggerAdapter();
-  const receiveMessage = new ReceiveMessageUseCase(logger);
-  const receiveCommand = new ReceiveCommandUseCase(logger);
-  const controller = new TelegramBotController(receiveMessage, receiveCommand);
-
-  controller.registerHandlers(bot);
-
-  return {
-    bot,
-    startPolling: (intervalMs?: number) => startPolling(bot, intervalMs),
-  };
-}
+@Module({
+  providers: [
+    botProvider,
+    { provide: UPDATE_LOGGER_PORT, useClass: ConsoleUpdateLoggerAdapter },
+    ReceiveMessageUseCase,
+    ReceiveCommandUseCase,
+    TelegramBotController,
+    BotLifecycleService,
+  ],
+})
+export class BotModule {}

@@ -1,4 +1,4 @@
-import { DomainException } from "../../../../core/domain/domain-exception.ts";
+import { DomainException } from "../../../../core/domain/domain-exception";
 
 export class InvalidCommandFormatException extends DomainException {
   readonly code = "INVALID_COMMAND_FORMAT";

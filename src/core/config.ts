@@ -1,18 +1,9 @@
-export interface AppConfig {
-  botToken: string;
-  port: number;
-  pollIntervalMs: number;
-}
-
-export function loadConfig(): AppConfig {
-  const botToken = process.env.BOT_TOKEN;
-  if (!botToken) {
+export function validateConfig(
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!config.BOT_TOKEN) {
     throw new Error("BOT_TOKEN is not set");
   }
 
-  return {
-    botToken,
-    port: Number(process.env.PORT ?? 3000),
-    pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 3000),
-  };
+  return config;
 }

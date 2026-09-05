@@ -1,4 +1,4 @@
-import { DomainException } from "../../../../core/domain/domain-exception.ts";
+import { DomainException } from "../../../../core/domain/domain-exception";
 
 export class EmptyMessageTextException extends DomainException {
   readonly code = "EMPTY_MESSAGE_TEXT";

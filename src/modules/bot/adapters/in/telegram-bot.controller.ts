@@ -1,19 +1,15 @@
+import { Injectable } from "@nestjs/common";
 import type { Bot } from "grammy";
-import type { ReceiveMessageUseCase } from "../../application/use-cases/receive-message.use-case.ts";
-import type { ReceiveCommandUseCase } from "../../application/use-cases/receive-command.use-case.ts";
-import { DomainException } from "../../../../core/domain/domain-exception.ts";
+import { ReceiveMessageUseCase } from "../../application/use-cases/receive-message.use-case";
+import { ReceiveCommandUseCase } from "../../application/use-cases/receive-command.use-case";
+import { DomainException } from "../../../../core/domain/domain-exception";
 
+@Injectable()
 export class TelegramBotController {
-  private readonly receiveMessage: ReceiveMessageUseCase;
-  private readonly receiveCommand: ReceiveCommandUseCase;
-
   constructor(
-    receiveMessage: ReceiveMessageUseCase,
-    receiveCommand: ReceiveCommandUseCase,
-  ) {
-    this.receiveMessage = receiveMessage;
-    this.receiveCommand = receiveCommand;
-  }
+    private readonly receiveMessage: ReceiveMessageUseCase,
+    private readonly receiveCommand: ReceiveCommandUseCase,
+  ) {}
 
   registerHandlers(bot: Bot): void {
     bot.on("message:entities:bot_command", (ctx) => {

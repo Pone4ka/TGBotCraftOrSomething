@@ -1,5 +1,6 @@
-import { ChatMessage } from "../../domain/chat-message.entity.ts";
-import type { UpdateLoggerPort } from "../ports/update-logger.port.ts";
+import { Inject, Injectable } from "@nestjs/common";
+import { ChatMessage } from "../../domain/chat-message.entity";
+import { UPDATE_LOGGER_PORT, type UpdateLoggerPort } from "../ports/update-logger.port";
 
 export interface ReceiveMessageInput {
   chatId: number;
@@ -8,12 +9,11 @@ export interface ReceiveMessageInput {
   raw: unknown;
 }
 
+@Injectable()
 export class ReceiveMessageUseCase {
-  private readonly logger: UpdateLoggerPort;
-
-  constructor(logger: UpdateLoggerPort) {
-    this.logger = logger;
-  }
+  constructor(
+    @Inject(UPDATE_LOGGER_PORT) private readonly logger: UpdateLoggerPort,
+  ) {}
 
   execute(input: ReceiveMessageInput): void {
     const message = ChatMessage.create(input);
