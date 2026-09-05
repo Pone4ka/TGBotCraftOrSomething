@@ -1,0 +1,21 @@
+{
+  "name": "untitled11",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --env-file=.env dist/main.js",
+    "watch": "node --env-file=.env --experimental-strip-types --watch src/main.ts"
+  },
+  "dependencies": {
+    "fastify": "^5.12.3",
+    "grammy": "^1.46.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^5.5.3"
+  },
+  "private": true
+}
