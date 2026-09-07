@@ -34,6 +34,11 @@ import { SwitchExchangeRateSourceUseCase } from "./application/use-cases/switch-
     CurrencyBotController,
     CurrencySourceBotController,
   ],
-  exports: [CurrencyBotController, CurrencySourceBotController],
+  exports: [
+    CurrencyBotController,
+    CurrencySourceBotController,
+    EXCHANGE_RATE_SOURCE_PREFERENCE_PORT,
+    TARGET_CURRENCY_PREFERENCE_PORT,
+  ],
 })
 export class CurrencyModule {}

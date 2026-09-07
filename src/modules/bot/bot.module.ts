@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { UserModeModule } from "../../core/user-mode/user-mode.module";
 import { CraftModule } from "../craft/craft.module";
 import { CurrencyModule } from "../currency/currency.module";
+import { DebugBotController } from "./adapters/in/debug-bot.controller";
 import { MenuBotController } from "./adapters/in/menu-bot.controller";
 import { TelegramBotController } from "./adapters/in/telegram-bot.controller";
 import { ConsoleUpdateLoggerAdapter } from "./adapters/out/console-update-logger.adapter";
@@ -21,6 +22,7 @@ import { botProvider } from "./infrastructure/bot.provider";
     ReceiveCommandUseCase,
     SwitchModeUseCase,
     MenuBotController,
+    DebugBotController,
     TelegramBotController,
     BotLifecycleService,
   ],

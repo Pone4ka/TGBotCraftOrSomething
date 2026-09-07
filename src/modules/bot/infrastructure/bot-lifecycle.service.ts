@@ -6,6 +6,7 @@ import { webhookCallback, type Bot } from "grammy";
 import { CraftBotController } from "../../craft/adapters/in/craft-bot.controller";
 import { CurrencyBotController } from "../../currency/adapters/in/currency-bot.controller";
 import { CurrencySourceBotController } from "../../currency/adapters/in/currency-source-bot.controller";
+import { DebugBotController } from "../adapters/in/debug-bot.controller";
 import { MenuBotController } from "../adapters/in/menu-bot.controller";
 import { TelegramBotController } from "../adapters/in/telegram-bot.controller";
 import { startPolling } from "./telegram-polling";
@@ -22,11 +23,15 @@ export class BotLifecycleService implements OnModuleInit, OnApplicationShutdown 
     private readonly currencyController: CurrencyBotController,
     private readonly currencySourceController: CurrencySourceBotController,
     private readonly craftController: CraftBotController,
+    private readonly debugController: DebugBotController,
     private readonly configService: ConfigService,
     private readonly httpAdapterHost: HttpAdapterHost,
   ) {}
 
   async onModuleInit(): Promise<void> {
+    // Debug goes first: a hidden command that must work no matter what mode/state the
+    // chat is in, before any of the state-dependent controllers below get a look at it.
+    this.debugController.registerHandlers(this.bot);
     // Menu goes first so it can fully own mode-switch commands/buttons before the
     // module controllers below (which call next() and hand off to the loggers) see them.
     this.menuController.registerHandlers(this.bot);
