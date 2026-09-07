@@ -1,0 +1,116 @@
+@startuml C4-TelegramBotBackend
+!pragma layout smetana
+title Telegram Bot Backend - C4 (Context + Container + Component)
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #33475B
+skinparam ArrowFontColor #33475B
+skinparam ArrowFontSize 11
+skinparam defaultTextAlignment center
+
+skinparam rectangle {
+  BorderColor #33475B
+  FontColor #FFFFFF
+}
+skinparam package {
+  BorderColor #33475B
+  FontColor #33475B
+}
+
+skinparam rectangle<<Person>> {
+  BackgroundColor #08427B
+  BorderColor #073B6F
+}
+skinparam rectangle<<External>> {
+  BackgroundColor #999999
+  BorderColor #6B6B6B
+}
+skinparam rectangle<<Container>> {
+  BackgroundColor #1168BD
+  BorderColor #0B4884
+}
+skinparam rectangle<<Component>> {
+  BackgroundColor #85BBF0
+  BorderColor #4A85C1
+  FontColor #073B6F
+}
+skinparam package<<Boundary>> {
+  BackgroundColor #F4F7FB
+  BorderStyle dashed
+}
+
+' ---------- Actor ----------
+rectangle "Telegram User\n<<Person>>\n--\nSends commands and text\nmessages to the bot" <<Person>> as User
+
+' ---------- External systems ----------
+rectangle "Telegram Bot API\n<<External System>>\n--\nDelivers/receives chat\nupdates (long polling\nor webhook)" <<External>> as TelegramApi
+rectangle "Frankfurter API\n<<External System>>\n--\nFree ECB reference\nexchange rates" <<External>> as Frankfurter
+rectangle "ExchangeRate-API\n<<External System>>\n--\nKeyed exchange-rate\nprovider (paid tier)" <<External>> as ExchangeRateApi
+
+' ---------- Container boundary ----------
+package "Telegram Bot Backend  [Container: Node.js / NestJS / Fastify]" <<Boundary>> as Backend {
+
+  rectangle "HTTP Server\n<<Container: Fastify>>\n--\nHealth endpoint,\noptional Telegram\nwebhook endpoint" <<Container>> as Http
+
+  rectangle "BotLifecycleService\n<<Component>>\n--\nWires up handlers,\nstarts polling or\nregisters webhook" <<Component>> as Lifecycle
+
+  package "Bot Module" <<Boundary>> {
+    rectangle "TelegramBotController\n<<Component>>\n--\nGeneric message/\ncommand intake" <<Component>> as TelegramCtrl
+    rectangle "MenuBotController\n<<Component>>\n--\n/start, mode menu\n& switching" <<Component>> as MenuCtrl
+    rectangle "DebugBotController\n<<Component>>\n--\nHidden debug command" <<Component>> as DebugCtrl
+    rectangle "Receive/Switch\nUse Cases\n<<Component>>" <<Component>> as BotUseCases
+  }
+
+  package "Currency Module" <<Boundary>> {
+    rectangle "CurrencyBotController /\nCurrencySourceBotController\n<<Component>>\n--\nParses \"100 usd\" style\ntext, source switching" <<Component>> as CurrencyCtrl
+    rectangle "ConvertAmountUseCase /\nSwitchExchangeRateSource\nUseCase\n<<Component>>" <<Component>> as CurrencyUseCases
+    rectangle "ExchangeRateRouterAdapter\n<<Component>>\n--\nRoutes to the user's\npreferred rate source" <<Component>> as RateRouter
+    rectangle "Frankfurter /\nExchangeRateApi\nAdapters\n<<Component>>" <<Component>> as RateAdapters
+  }
+
+  package "Craft Module" <<Boundary>> {
+    rectangle "CraftBotController\n<<Component>>\n--\nPlaceholder module\n(in development)" <<Component>> as CraftCtrl
+  }
+
+  package "Core" <<Boundary>> {
+    rectangle "UserModePort\n(in-memory)\n<<Component>>\n--\nTracks each chat's\ncurrent mode" <<Component>> as UserMode
+    rectangle "HealthController\n<<Component>>" <<Component>> as Health
+  }
+}
+
+' ---------- Relationships ----------
+User --> TelegramApi : "sends messages / commands\n[Telegram protocol]"
+Lifecycle --> TelegramApi : "long-polls getUpdates()\n(or registers webhook)\n[HTTPS]"
+Http --> Lifecycle : "hosts webhook endpoint\n(when WEBHOOK_URL set)"
+TelegramApi ..> Http : "webhook POST\n[HTTPS] (alt. mode)"
+
+Lifecycle --> TelegramCtrl : registers handlers
+Lifecycle --> MenuCtrl : registers handlers
+Lifecycle --> DebugCtrl : registers handlers
+Lifecycle --> CurrencyCtrl : registers handlers
+Lifecycle --> CraftCtrl : registers handlers
+
+TelegramCtrl --> BotUseCases : invokes
+MenuCtrl --> BotUseCases : invokes
+MenuCtrl --> UserMode : "reads/switches\nchat mode"
+CraftCtrl --> UserMode : "reads chat mode"
+
+CurrencyCtrl --> CurrencyUseCases : invokes
+CurrencyCtrl --> UserMode : "reads chat mode"
+CurrencyUseCases --> RateRouter : "convert(amount,\nfrom, to)"
+RateRouter --> RateAdapters : "delegates by\nuser preference"
+RateAdapters --> Frankfurter : "GET /latest\n[HTTPS/JSON]"
+RateAdapters --> ExchangeRateApi : "GET /pair/...\n[HTTPS/JSON]"
+
+legend right
+  |= Shape / Color |= Meaning |
+  | <back:#08427B><color:#FFFFFF>   </color></back> | Person (actor) |
+  | <back:#999999><color:#FFFFFF>   </color></back> | External System |
+  | <back:#1168BD><color:#FFFFFF>   </color></back> | Container (deployable unit) |
+  | <back:#85BBF0>   </back> | Component (module / class inside the container) |
+  | dashed box | Boundary (module grouping) |
+endlegend
+
+@enduml
