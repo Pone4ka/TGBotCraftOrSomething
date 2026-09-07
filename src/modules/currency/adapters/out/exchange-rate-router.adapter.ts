@@ -20,18 +20,18 @@ export class ExchangeRateRouterAdapter implements ExchangeRatePort {
     private readonly sourcePreference: ExchangeRateSourcePreferencePort,
   ) {}
 
-  async convertToUsd(amount: number, fromCurrency: string, chatId: number): Promise<number> {
+  async convert(amount: number, fromCurrency: string, toCurrency: string, chatId: number): Promise<number> {
     const source = this.sourcePreference.getSource(chatId) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
 
     if (source === "exchangerate-api") {
-      return this.exchangeRateApi.convertToUsd(amount, fromCurrency);
+      return this.exchangeRateApi.convert(amount, fromCurrency, toCurrency);
     }
 
     try {
-      return await this.frankfurter.convertToUsd(amount, fromCurrency);
+      return await this.frankfurter.convert(amount, fromCurrency, toCurrency);
     } catch (error) {
       if (error instanceof UnsupportedCurrencyBySourceException) {
-        return this.exchangeRateApi.convertToUsd(amount, fromCurrency);
+        return this.exchangeRateApi.convert(amount, fromCurrency, toCurrency);
       }
       throw error;
     }

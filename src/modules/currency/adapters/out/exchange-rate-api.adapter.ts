@@ -13,9 +13,9 @@ interface ExchangeRatePairResponse {
 export class ExchangeRateApiAdapter implements ExchangeRatePort {
   constructor(private readonly configService: ConfigService) {}
 
-  async convertToUsd(amount: number, fromCurrency: string): Promise<number> {
+  async convert(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
     const apiKey = this.configService.getOrThrow<string>("EXCHANGE_API_KEY");
-    const url = `https://v6.exchangerate-api.com/v6/${apiKey}/pair/${fromCurrency}/USD/${amount}`;
+    const url = `https://v6.exchangerate-api.com/v6/${apiKey}/pair/${fromCurrency}/${toCurrency}/${amount}`;
 
     let response: Response;
     try {

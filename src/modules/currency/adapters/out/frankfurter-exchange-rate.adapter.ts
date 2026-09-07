@@ -12,8 +12,8 @@ interface FrankfurterResponse {
 
 @Injectable()
 export class FrankfurterExchangeRateAdapter implements ExchangeRatePort {
-  async convertToUsd(amount: number, fromCurrency: string): Promise<number> {
-    const url = `https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${fromCurrency}&to=USD`;
+  async convert(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
+    const url = `https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${fromCurrency}&to=${toCurrency}`;
 
     let response: Response;
     try {
@@ -31,11 +31,15 @@ export class FrankfurterExchangeRateAdapter implements ExchangeRatePort {
     }
 
     const data = (await response.json()) as FrankfurterResponse;
-    const usd = data.rates?.USD;
-    if (!response.ok || usd === undefined) {
+    const converted = data.rates?.[toCurrency];
+    if (!response.ok || converted === undefined) {
+      if (response.ok) {
+        // Request succeeded but the target currency isn't in ECB's rate set.
+        throw new UnsupportedCurrencyBySourceException(toCurrency, "frankfurter");
+      }
       throw new ExchangeRateApiException(`HTTP ${response.status}`);
     }
 
-    return usd;
+    return converted;
   }
 }

@@ -62,6 +62,16 @@ export class CurrencyTextParserService {
     };
   }
 
+  /** Resolves a free-form currency name/code/symbol mentioned anywhere in the text
+   * (no amount required) to its ISO 4217 code, using the same alias dictionary as parse(). */
+  parseCurrencyName(text: string): string | null {
+    this.aliasStandalonePattern.lastIndex = 0;
+    const match = this.aliasStandalonePattern.exec(text);
+    if (!match) return null;
+
+    return CURRENCY_ALIASES[match[0].toLowerCase()] ?? null;
+  }
+
   /**
    * Call when parse() returns null to tell why: an amount was paired with a word that
    * isn't a known currency, or either half (currency or amount) showed up alone.

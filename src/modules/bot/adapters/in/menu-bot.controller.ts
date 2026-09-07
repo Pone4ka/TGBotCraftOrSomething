@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Keyboard, type Bot } from "grammy";
 import { CHANGE_API_LABEL } from "../../../currency/adapters/in/currency-source-bot.controller";
+import { CHOOSE_CURRENCY_LABEL } from "../../../currency/adapters/in/currency-bot.controller";
 import { SwitchModeUseCase } from "../../application/use-cases/switch-mode.use-case";
 import { DEFAULT_BOT_MODE, type BotMode } from "../../../../core/user-mode/bot-mode";
 import { USER_MODE_PORT, type UserModePort } from "../../../../core/user-mode/user-mode.port";
@@ -21,7 +22,12 @@ const HOME_KEYBOARD = new Keyboard()
 // Each mode's own screen shows only "back to root" plus that mode's own buttons —
 // currency never shows craft's placeholder and vice versa.
 const MODE_KEYBOARDS: Record<Exclude<BotMode, "home">, Keyboard> = {
-  currency: new Keyboard().text(BACK_LABEL).text(CHANGE_API_LABEL).resized(),
+  currency: new Keyboard()
+    .text(BACK_LABEL)
+    .text(CHANGE_API_LABEL)
+    .row()
+    .text(CHOOSE_CURRENCY_LABEL)
+    .resized(),
   craft: new Keyboard().text(BACK_LABEL).text(CRAFT_PLACEHOLDER_LABEL).resized(),
 };
 
