@@ -15,7 +15,7 @@ export class ConvertToUsdUseCase {
     @Inject(EXCHANGE_RATE_PORT) private readonly exchangeRate: ExchangeRatePort,
   ) {}
 
-  async execute(text: string): Promise<ConvertToUsdResult | null> {
+  async execute(text: string, chatId: number): Promise<ConvertToUsdResult | null> {
     const parsed = this.parser.parse(text);
     if (!parsed) return null;
 
@@ -23,7 +23,7 @@ export class ConvertToUsdUseCase {
       return { amount: parsed.amount, currency: parsed.currency, usd: parsed.amount };
     }
 
-    const usd = await this.exchangeRate.convertToUsd(parsed.amount, parsed.currency);
+    const usd = await this.exchangeRate.convertToUsd(parsed.amount, parsed.currency, chatId);
     return { amount: parsed.amount, currency: parsed.currency, usd };
   }
 }

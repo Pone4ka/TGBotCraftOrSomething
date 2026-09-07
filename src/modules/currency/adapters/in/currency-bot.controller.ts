@@ -1,6 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { Bot } from "grammy";
 import { DomainException } from "../../../../core/domain/domain-exception";
+import { DEFAULT_BOT_MODE } from "../../../../core/user-mode/bot-mode";
+import { USER_MODE_PORT, type UserModePort } from "../../../../core/user-mode/user-mode.port";
 import { CurrencyTextParserService } from "../../application/services/currency-text-parser.service";
 import { ConvertToUsdUseCase } from "../../application/use-cases/convert-to-usd.use-case";
 
@@ -9,18 +11,20 @@ export class CurrencyBotController {
   constructor(
     private readonly convertToUsd: ConvertToUsdUseCase,
     private readonly parser: CurrencyTextParserService,
+    @Inject(USER_MODE_PORT) private readonly userMode: UserModePort,
   ) {}
 
   registerHandlers(bot: Bot): void {
     bot.on("message:text", async (ctx, next) => {
       const isBotCommand = ctx.message.entities?.some((entity) => entity.type === "bot_command") ?? false;
-      if (isBotCommand) {
+      const mode = this.userMode.getMode(ctx.chat.id) ?? DEFAULT_BOT_MODE;
+      if (isBotCommand || mode !== "currency") {
         await next();
         return;
       }
 
       try {
-        const result = await this.convertToUsd.execute(ctx.message.text);
+        const result = await this.convertToUsd.execute(ctx.message.text, ctx.chat.id);
         if (result) {
           await ctx.reply(
             `${result.amount} ${result.currency} ≈ ${result.usd.toFixed(2)} USD`,
