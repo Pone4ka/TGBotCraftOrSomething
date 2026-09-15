@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Keyboard, type Bot } from "grammy";
 import { CHANGE_API_LABEL } from "../../../currency/adapters/in/currency-source-bot.controller";
 import { CHOOSE_CURRENCY_LABEL } from "../../../currency/adapters/in/currency-bot.controller";
+import { STUDENT_INFO_LABEL } from "../../../student/adapters/in/student-bot.controller";
 import { SwitchModeUseCase } from "../../application/use-cases/switch-mode.use-case";
 import { DEFAULT_BOT_MODE, type BotMode } from "../../../../core/user-mode/bot-mode";
 import { USER_MODE_PORT, type UserModePort } from "../../../../core/user-mode/user-mode.port";
@@ -17,6 +18,8 @@ const HOME_PROMPT = "Выберите режим работы бота:";
 const HOME_KEYBOARD = new Keyboard()
   .text(HOME_CURRENCY_LABEL)
   .text(HOME_CRAFT_LABEL)
+  .row()
+  .text(STUDENT_INFO_LABEL)
   .resized();
 
 // Each mode's own screen shows only "back to root" plus that mode's own buttons —

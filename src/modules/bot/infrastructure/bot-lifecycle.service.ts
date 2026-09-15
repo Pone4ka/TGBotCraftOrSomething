@@ -6,6 +6,7 @@ import { webhookCallback, type Bot } from "grammy";
 import { CraftBotController } from "../../craft/adapters/in/craft-bot.controller";
 import { CurrencyBotController } from "../../currency/adapters/in/currency-bot.controller";
 import { CurrencySourceBotController } from "../../currency/adapters/in/currency-source-bot.controller";
+import { StudentBotController } from "../../student/adapters/in/student-bot.controller";
 import { DebugBotController } from "../adapters/in/debug-bot.controller";
 import { MenuBotController } from "../adapters/in/menu-bot.controller";
 import { TelegramBotController } from "../adapters/in/telegram-bot.controller";
@@ -23,6 +24,7 @@ export class BotLifecycleService implements OnModuleInit, OnApplicationShutdown 
     private readonly currencyController: CurrencyBotController,
     private readonly currencySourceController: CurrencySourceBotController,
     private readonly craftController: CraftBotController,
+    private readonly studentController: StudentBotController,
     private readonly debugController: DebugBotController,
     private readonly configService: ConfigService,
     private readonly httpAdapterHost: HttpAdapterHost,
@@ -38,6 +40,7 @@ export class BotLifecycleService implements OnModuleInit, OnApplicationShutdown 
     this.currencySourceController.registerHandlers(this.bot);
     this.currencyController.registerHandlers(this.bot);
     this.craftController.registerHandlers(this.bot);
+    this.studentController.registerHandlers(this.bot);
     this.controller.registerHandlers(this.bot);
     await this.bot.init();
 

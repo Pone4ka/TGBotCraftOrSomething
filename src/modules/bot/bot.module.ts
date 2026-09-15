@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { UserModeModule } from "../../core/user-mode/user-mode.module";
 import { CraftModule } from "../craft/craft.module";
 import { CurrencyModule } from "../currency/currency.module";
+import { StudentModule } from "../student/student.module";
 import { DebugBotController } from "./adapters/in/debug-bot.controller";
 import { MenuBotController } from "./adapters/in/menu-bot.controller";
 import { TelegramBotController } from "./adapters/in/telegram-bot.controller";
@@ -14,7 +15,7 @@ import { BotLifecycleService } from "./infrastructure/bot-lifecycle.service";
 import { botProvider } from "./infrastructure/bot.provider";
 
 @Module({
-  imports: [UserModeModule, CurrencyModule, CraftModule],
+  imports: [UserModeModule, CurrencyModule, CraftModule, StudentModule],
   providers: [
     botProvider,
     { provide: UPDATE_LOGGER_PORT, useClass: ConsoleUpdateLoggerAdapter },
