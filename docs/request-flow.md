@@ -5,9 +5,9 @@
 ## 1. Сообщение доходит до сервера
 
 - Если бот работает через **polling**: каждые `POLL_INTERVAL_MS` мс `startPolling` (`src/modules/bot/infrastructure/telegram-polling.ts`) спрашивает Telegram: "есть новые апдейты?" — и получает этот. Вызывает `bot.handleUpdate(update)`.
-- Если через **webhook**: Telegram сам присылает POST-запрос на `/telegram/webhook/<секрет>`, который слушает Fastify (настроено в `bot-lifecycle.service.ts`). grammY внутри тоже сводится к вызову `bot.handleUpdate(update)`.
+- Если через **webhook**: Telegram сам присылает POST-запрос на `/telegram/webhook/<секрет>`, который слушает Fastify (роут монтируется в `bot-lifecycle.service.ts` на общий Fastify-инстанс из `main.ts`). grammY внутри тоже сводится к вызову `bot.handleUpdate(update)`.
 
-В обоих случаях дальше в дело вступает **grammY** — библиотека прогоняет апдейт через все зарегистрированные обработчики по очереди, в том порядке, в котором они были добавлены в `BotLifecycleService.onModuleInit()`.
+В обоих случаях дальше в дело вступает **grammY** — библиотека прогоняет апдейт через все зарегистрированные обработчики по очереди, в том порядке, в котором они были добавлены в `BotLifecycleService.start()`.
 
 ## 2. Цепочка обработчиков (как middleware)
 
@@ -35,11 +35,11 @@
 
 ## 3б. Если бы понадобилась реальная конвертация
 
-`exchangeRate.convert(100, "USD", "EUR", chatId)` вызывает не абстрактный порт, а его текущую реализацию — `ExchangeRateRouterAdapter` (`exchange-rate-router.adapter.ts`), потому что именно он зарегистрирован под токеном `EXCHANGE_RATE_PORT` в `currency.module.ts`.
+`exchangeRate.convert(100, "USD", "EUR", chatId)` вызывает не абстрактный порт, а его текущую реализацию — `ExchangeRateRouterAdapter` (`exchange-rate-router.adapter.ts`), потому что именно этот экземпляр `createCurrencyModule` передал в `ConvertAmountUseCase` при сборке приложения (см. `currency.module.ts`).
 
 1. Роутер смотрит, какой источник выбрал этот чат (`sourcePreference.getSource(chatId)`) — по умолчанию `"frankfurter"`.
 2. Пробует `FrankfurterExchangeRateAdapter.convert(...)` — делает `fetch` к `api.frankfurter.dev`.
-3. Если Frankfurter не знает эту валюту (например, запросили RUB) — кидает `UnsupportedCurrencyBySourceException`, и роутер **автоматически** пробует запасной вариант — `ExchangeRateApiAdapter` (ходит на `v6.exchangerate-api.com` с ключом `EXCHANGE_API_KEY`).
+3. Если Frankfurter не знает эту валюту (например, запросили RUB) — кидает `UnsupportedCurrencyBySourceException`, и роутер **автоматически** пробует запасной вариант — `ExchangeRateApiAdapter` (ходит на `v6.exchangerate-api.com` с ключом, который был передан в конструктор адаптера при сборке `currency.module.ts`, из `config.exchangeApiKey`).
 4. Возвращается число — итоговая сумма в целевой валюте.
 
 ## 4. Ответ пользователю
@@ -56,7 +56,7 @@ await ctx.reply(`${result.amount} ${result.currency} ≈ ${result.converted.toFi
 
 ## 5. Последний в очереди — логирование
 
-5. **`CraftBotController`** — режим не `"craft"`, пропускает.
+5. **`StudentBotController`** — слушает только кнопку "🎓 Студент", "100 usd" не подходит, пропускает молча.
 6. **`TelegramBotController`** — срабатывают оба его обработчика (`message:entities:bot_command` — не подходит, это не команда; и просто `message` — подходит всегда). Вызывается `ReceiveMessageUseCase.execute(...)`:
    - Создаётся `ChatMessage.create({ chatId, authorId, text: "100 usd", raw })` — текст не пустой, значит, ошибки нет.
    - `ConsoleUpdateLoggerAdapter.logMessage(message)` печатает в консоль сервера текст сообщения и сырой JSON апдейта. Это просто лог для отладки, на ответ пользователю никак не влияет.

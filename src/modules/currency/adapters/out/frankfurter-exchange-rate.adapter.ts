@@ -1,4 +1,3 @@
-import { Injectable } from "@nestjs/common";
 import type { ExchangeRatePort } from "../../application/ports/exchange-rate.port";
 import { ExchangeRateApiException } from "../../domain/exceptions/exchange-rate-api.exception";
 import { UnsupportedCurrencyBySourceException } from "../../domain/exceptions/unsupported-currency-by-source.exception";
@@ -10,7 +9,6 @@ interface FrankfurterResponse {
   rates: Record<string, number>;
 }
 
-@Injectable()
 export class FrankfurterExchangeRateAdapter implements ExchangeRatePort {
   async convert(amount: number, fromCurrency: string, toCurrency: string): Promise<number> {
     const url = `https://api.frankfurter.dev/v1/latest?amount=${amount}&from=${fromCurrency}&to=${toCurrency}`;

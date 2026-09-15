@@ -1,4 +1,3 @@
-import { Injectable } from "@nestjs/common";
 import { CURRENCY_ALIASES } from "../../domain/currency-alias.dictionary";
 import type { ParsedAmount } from "../../domain/parsed-amount";
 
@@ -8,7 +7,6 @@ function escapeRegExp(value: string): string {
 
 export type CurrencyParseIssue = "unrecognized-currency" | "missing-amount";
 
-@Injectable()
 export class CurrencyTextParserService {
   private readonly pattern: RegExp;
   private readonly genericPattern: RegExp;

@@ -1,12 +1,6 @@
 import { Bot } from "grammy";
-import { ConfigService } from "@nestjs/config";
-import type { Provider } from "@nestjs/common";
+import type { Config } from "../../../core/config";
 
-export const BOT_INSTANCE = Symbol("BotInstance");
-
-export const botProvider: Provider = {
-  provide: BOT_INSTANCE,
-  useFactory: (configService: ConfigService) =>
-    new Bot(configService.getOrThrow<string>("BOT_TOKEN")),
-  inject: [ConfigService],
-};
+export function createBot(config: Config): Bot {
+  return new Bot(config.botToken);
+}

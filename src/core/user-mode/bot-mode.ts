@@ -1,4 +1,4 @@
-export const BOT_MODES = ["home", "currency", "craft"] as const;
+export const BOT_MODES = ["home", "currency"] as const;
 
 export type BotMode = (typeof BOT_MODES)[number];
 

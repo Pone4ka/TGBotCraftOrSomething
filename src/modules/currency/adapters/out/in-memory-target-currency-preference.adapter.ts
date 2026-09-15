@@ -1,7 +1,5 @@
-import { Injectable } from "@nestjs/common";
 import type { TargetCurrencyPreferencePort } from "../../application/ports/target-currency-preference.port";
 
-@Injectable()
 export class InMemoryTargetCurrencyPreferenceAdapter implements TargetCurrencyPreferencePort {
   private readonly currencies = new Map<number, string>();
   private readonly awaitingSelection = new Set<number>();

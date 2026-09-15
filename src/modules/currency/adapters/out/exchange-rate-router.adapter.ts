@@ -1,9 +1,5 @@
-import { Inject, Injectable } from "@nestjs/common";
 import type { ExchangeRatePort } from "../../application/ports/exchange-rate.port";
-import {
-  EXCHANGE_RATE_SOURCE_PREFERENCE_PORT,
-  type ExchangeRateSourcePreferencePort,
-} from "../../application/ports/exchange-rate-source-preference.port";
+import type { ExchangeRateSourcePreferencePort } from "../../application/ports/exchange-rate-source-preference.port";
 import { DEFAULT_EXCHANGE_RATE_SOURCE } from "../../domain/exchange-rate-source";
 import { UnsupportedCurrencyBySourceException } from "../../domain/exceptions/unsupported-currency-by-source.exception";
 import { ExchangeRateApiAdapter } from "./exchange-rate-api.adapter";
@@ -11,12 +7,10 @@ import { FrankfurterExchangeRateAdapter } from "./frankfurter-exchange-rate.adap
 
 /** Picks the exchange rate source per chat, falling back to ExchangeRate-API for
  * currencies Frankfurter's ECB feed doesn't carry. */
-@Injectable()
 export class ExchangeRateRouterAdapter implements ExchangeRatePort {
   constructor(
     private readonly frankfurter: FrankfurterExchangeRateAdapter,
     private readonly exchangeRateApi: ExchangeRateApiAdapter,
-    @Inject(EXCHANGE_RATE_SOURCE_PREFERENCE_PORT)
     private readonly sourcePreference: ExchangeRateSourcePreferencePort,
   ) {}
 

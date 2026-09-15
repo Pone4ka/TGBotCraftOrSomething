@@ -17,18 +17,19 @@
 
 ## Как это выглядит в папках проекта
 
-Внутри каждого модуля (`bot`, `currency`) есть одинаковая структура:
+Внутри каждого модуля (`bot`, `currency`, `student`) есть похожая структура:
 
 ```
 modules/currency/
-├── domain/            — «что» это такое: сущности, правила, ошибки. Ничего не знает про NestJS, HTTP, Telegram.
+├── domain/            — «что» это такое: сущности, правила, ошибки. Ничего не знает про HTTP, Telegram, DI.
 ├── application/        
 │   ├── ports/            — интерфейсы («розетки»): что нужно бизнес-логике от внешнего мира
 │   ├── services/           — вспомогательная логика (например, разбор текста)
 │   └── use-cases/          — сценарии использования: "что должно произойти, если..."
-└── adapters/
-    ├── in/               — адаптеры "на вход": кто вызывает use-case (у нас — всегда Telegram-обработчики)
-    └── out/              — адаптеры "на выход": use-case вызывает их (Telegram API, HTTP-запросы к внешним сервисам, память)
+├── adapters/
+│   ├── in/               — адаптеры "на вход": кто вызывает use-case (у нас — всегда Telegram-обработчики)
+│   └── out/              — адаптеры "на выход": use-case вызывает их (Telegram API, HTTP-запросы к внешним сервисам, память)
+└── currency.module.ts   — фабрика: создаёт конкретные адаптеры и use-case'ы и связывает их друг с другом
 ```
 
 ### Термины по-простому
@@ -39,65 +40,80 @@ modules/currency/
 | **Port (порт)** | TypeScript `interface`, который описывает "что нам нужно", не говоря "как именно". Например: `ExchangeRatePort` — "нужен способ узнать курс", а не "нужен fetch к конкретному URL". |
 | **Use Case (сценарий использования)** | Класс с одним методом `execute()`, который описывает одно конкретное действие пользователя: "конвертировать сумму", "переключить режим". Это точка входа в бизнес-логику. |
 | **Adapter (адаптер)** | Конкретная реализация порта. Adapter **in** — то, что запускает use-case (у нас это Telegram-контроллеры). Adapter **out** — то, что use-case дёргает наружу (запрос к API, запись в память). |
+| **Module-фабрика** | Функция вида `createXModule(deps)`, которая создаёт конкретные адаптеры/use-case'ы, склеивает их друг с другом и возвращает то, что нужно остальным частям приложения. Замена NestJS-модулей в чистом TypeScript — без магии, без DI-контейнера, просто явные вызовы конструкторов. |
 
 ### Как соединяются порт и адаптер
 
-Порт — это просто `interface` + уникальный `Symbol` (используется как "ключ" для NestJS Dependency Injection):
+Порт — это просто `interface`, без какой-либо привязки к фреймворку:
 
 ```typescript
 // application/ports/exchange-rate.port.ts
-export const EXCHANGE_RATE_PORT = Symbol("ExchangeRatePort");
-
 export interface ExchangeRatePort {
   convert(amount: number, fromCurrency: string, toCurrency: string, chatId: number): Promise<number>;
 }
 ```
 
-А в модуле (файл `*.module.ts`) мы говорим NestJS: "когда кто-то попросит `EXCHANGE_RATE_PORT`, дай ему вот этот конкретный класс":
+Use-case принимает конкретную реализацию порта как обычный параметр конструктора — типизированный интерфейсом, а не конкретным классом:
+
+```typescript
+// application/use-cases/convert-amount.use-case.ts
+export class ConvertAmountUseCase {
+  constructor(
+    private readonly parser: CurrencyTextParserService,
+    private readonly exchangeRate: ExchangeRatePort,
+    private readonly targetCurrencyPreference: TargetCurrencyPreferencePort,
+  ) {}
+  // ...
+}
+```
+
+А связывает use-case с конкретным адаптером модуль-фабрика (`currency.module.ts`):
 
 ```typescript
 // currency.module.ts
-{ provide: EXCHANGE_RATE_PORT, useClass: ExchangeRateRouterAdapter }
+const exchangeRate = new ExchangeRateRouterAdapter(frankfurter, exchangeRateApi, sourcePreference);
+const convertAmount = new ConvertAmountUseCase(parser, exchangeRate, targetCurrencyPreference);
 ```
 
-Use case ничего не знает про `ExchangeRateRouterAdapter` — он просит через `@Inject(EXCHANGE_RATE_PORT)` абстрактный `ExchangeRatePort`. Если завтра захотите сменить источник курса валют — меняете одну строчку в модуле, а весь остальной код не трогаете.
+Use case ничего не знает про `ExchangeRateRouterAdapter` — он работает с абстрактным `ExchangeRatePort`. Если завтра захотите сменить источник курса валют — меняете одну строчку в модуле-фабрике, а весь остальной код не трогаете.
 
-Это называется **Dependency Injection (внедрение зависимости)** — стандартный механизм NestJS, вдохновлённый Angular.
+Это называется **Dependency Injection (внедрение зависимости)** — но здесь оно "ручное" (constructor injection без контейнера): нет ни декораторов, ни токенов, ни магии автопроводки, всё видно по коду одним взглядом, что и куда передаётся.
 
-## NestJS-модули
+## Модули-фабрики и композиция приложения
 
-NestJS группирует код в **модули** (`@Module`) — это способ сказать "вот эти классы принадлежат друг другу, вот что они экспортируют наружу, вот что им нужно от других модулей". У модуля есть:
+Раньше это делал NestJS через `@Module`-декораторы и DI-контейнер. В чистом TypeScript та же идея выражена явными функциями-фабриками:
 
-- `providers` — классы, которые NestJS создаёт и внедряет через DI (use-case'ы, адаптеры, сервисы);
-- `imports` — какие другие модули нужны этому модулю;
-- `exports` — что из своих `providers` этот модуль готов "одолжить" другим модулям, которые его импортируют;
-- `controllers` — HTTP-контроллеры (используется только в `AppModule` для health-check, боту Telegram обычные Nest-контроллеры не нужны).
+- `createCurrencyModule(deps)` — создаёт адаптеры курсов валют, парсер, use-case'ы, Telegram-контроллеры модуля `currency`, возвращает наружу то, что нужно другим модулям (контроллеры + порты предпочтений — их использует `DebugBotController` в модуле `bot`).
+- `createStudentModule()` — аналогично для демонстрационного модуля `student`.
+- `createBotModule(deps)` — принимает уже собранные `currency` и `student` модули, конфиг и общий `UserModePort`, создаёт объект бота grammY, все bot-контроллеры и `BotLifecycleService`, возвращает `{ start(), stop() }`.
 
-Дерево модулей проекта:
+Всё это собирается один раз, в одном месте — `src/main.ts`:
 
 ```
-AppModule (корень)
-├── ConfigModule            — читает .env, глобальный (доступен всем без импорта)
-├── HealthController         — health-check эндпоинты (напрямую в AppModule)
-└── BotModule
-    ├── UserModeModule        — общий для bot/currency/craft: "в каком режиме чат"
-    ├── CurrencyModule
-    │   └── UserModeModule (тоже импортирует)
-    └── CraftModule
-        └── UserModeModule (тоже импортирует)
+main.ts (composition root)
+├── loadConfig()                — читает и валидирует .env
+├── createSupabaseClient(config) — готовит клиент Supabase (задел на будущее)
+├── new InMemoryUserModeAdapter() — общий на все модули, создаётся один раз
+├── createHttpServer()            — поднимает Fastify, регистрирует health-роуты
+├── createCurrencyModule({config, userMode})
+├── createStudentModule()          — плюс регистрирует свой HTTP-роут на общий Fastify-инстанс
+└── createBotModule({config, userMode, currency, student, httpServer})
 ```
+
+Такой файл называют **composition root** — единственное место в приложении, где реальные классы связываются друг с другом. Всё, что лежит "ниже" (use-case'ы, адаптеры, контроллеры), знает только про интерфейсы и ничего не знает про то, как их создали и склеили.
 
 ## Конфигурация (.env)
 
-Проект использует `@nestjs/config`. При старте (`src/core/config.ts`) проверяется, что заданы:
+Функция `loadConfig()` (`src/core/config.ts`) вызывается один раз при старте приложения (в `main.ts`) и сразу возвращает типизированный объект `Config`. Если обязательная переменная не задана — бросается `Error`, и приложение не стартует. Это защита от ситуации "бот запустился, а через 5 минут упал, потому что забыли токен".
 
-- `BOT_TOKEN` — обязателен, иначе приложение не стартует
-- `EXCHANGE_API_KEY` — обязателен, иначе приложение не стартует
+Обязательные переменные:
 
-Необязательные переменные, которые код умеет читать (см. `src/modules/bot/infrastructure/bot-lifecycle.service.ts`):
+- `BOT_TOKEN`, `EXCHANGE_API_KEY`
+- `SUPABASE_URL`, `SUPABASE_KEY`
 
-- `WEBHOOK_URL` — если задан, бот работает через вебхук вместо long polling
-- `WEBHOOK_SECRET` — обязателен, **только если** задан `WEBHOOK_URL`
+Необязательные:
+
+- `WEBHOOK_URL` — если задан, бот работает через вебхук вместо long polling. В этом случае `WEBHOOK_SECRET` становится обязательным (проверяется сразу в `loadConfig()`, а не в момент настройки вебхука).
 - `POLL_INTERVAL_MS` — как часто опрашивать Telegram при polling (по умолчанию 3000 мс)
 - `PORT` — порт HTTP-сервера (по умолчанию 3000)
 
@@ -106,7 +122,7 @@ AppModule (корень)
 Есть два способа узнать о новых сообщениях в Telegram:
 
 - **Polling (long polling)** — бот сам, по таймеру, спрашивает у Telegram "есть что-то новое?" (`getUpdates`). Просто, работает без публичного HTTPS-адреса, подходит для разработки. Реализовано в `src/modules/bot/infrastructure/telegram-polling.ts`.
-- **Webhook** — Telegram сам присылает HTTP POST на ваш публичный адрес, когда есть новое сообщение. Быстрее и эффективнее, но нужен HTTPS-адрес, доступный из интернета. Настраивается в `bot-lifecycle.service.ts`, эндпоинт монтируется прямо на Fastify-инстанс Nest.
+- **Webhook** — Telegram сам присылает HTTP POST на ваш публичный адрес, когда есть новое сообщение. Быстрее и эффективнее, но нужен HTTPS-адрес, доступный из интернета. Настраивается в `bot-lifecycle.service.ts`, роут монтируется прямо на общий Fastify-инстанс, созданный в `main.ts`.
 
 Выбор происходит автоматически: если в `.env` задан `WEBHOOK_URL` — используется вебхук, иначе — polling.
 

@@ -1,13 +1,35 @@
-export function validateConfig(
-  config: Record<string, unknown>,
-): Record<string, unknown> {
-  if (!config.BOT_TOKEN) {
-    throw new Error("BOT_TOKEN is not set");
-  }
+export interface Config {
+  readonly botToken: string;
+  readonly exchangeApiKey: string;
+  readonly supabaseUrl: string;
+  readonly supabaseKey: string;
+  readonly webhookUrl?: string;
+  readonly webhookSecret?: string;
+  readonly pollIntervalMs: number;
+  readonly port: number;
+}
 
-  if (!config.EXCHANGE_API_KEY) {
-    throw new Error("EXCHANGE_API_KEY is not set");
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is not set`);
   }
+  return value;
+}
 
-  return config;
+export function loadConfig(): Config {
+  const webhookUrl = process.env.WEBHOOK_URL;
+
+  return {
+    botToken: requireEnv("BOT_TOKEN"),
+    exchangeApiKey: requireEnv("EXCHANGE_API_KEY"),
+    supabaseUrl: requireEnv("SUPABASE_URL"),
+    supabaseKey: requireEnv("SUPABASE_KEY"),
+    webhookUrl,
+    // Only required when webhooks are actually enabled; fail fast at startup
+    // rather than the first time setUpWebhook() runs.
+    webhookSecret: webhookUrl ? requireEnv("WEBHOOK_SECRET") : process.env.WEBHOOK_SECRET,
+    pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 3000),
+    port: Number(process.env.PORT ?? 3000),
+  };
 }

@@ -4,15 +4,15 @@
 
 ## `currency.module.ts`
 
-**`CurrencyModule`** собирает всё это воедино. Регистрирует:
+**`createCurrencyModule(deps)`** — фабрика, которая собирает всё это воедино вручную. Создаёт:
 
 - Два "внешних" адаптера получения курса — `FrankfurterExchangeRateAdapter` и `ExchangeRateApiAdapter`.
-- `ExchangeRateRouterAdapter` — регистрируется **под токеном** `EXCHANGE_RATE_PORT` (то есть весь остальной код видит только его, а не два адаптера выше напрямую — они внедряются как зависимости самого роутера).
+- `ExchangeRateRouterAdapter` — оборачивает оба адаптера выше и передаётся в use-case как единственная реализация `ExchangeRatePort` (весь остальной код видит только интерфейс, а не два конкретных адаптера).
 - Адаптеры хранения предпочтений пользователя "в памяти" (источник курса, целевая валюта).
 - `CurrencyTextParserService` — разбор текста.
 - Два use-case'а и два входных контроллера.
 
-Экспортирует контроллеры и токены предпочтений — потому что `MenuBotController` и `DebugBotController` (из модуля `bot`) тоже используют кнопки/данные этого модуля.
+Возвращает наружу контроллеры и оба порта предпочтений (`sourcePreference`, `targetCurrencyPreference`) — потому что `DebugBotController` (из модуля `bot`) тоже читает их напрямую (см. `bot.module.ts`).
 
 ## `domain/` — сущности и правила, независимые от Telegram/HTTP
 
@@ -91,7 +91,7 @@
 
 ### `exchange-rate-router.adapter.ts`
 
-**`ExchangeRateRouterAdapter`** — тоже реализация `ExchangeRatePort`, но это не "настоящий" источник данных, а **обёртка-маршрутизатор** над двумя предыдущими адаптерами. Именно этот класс подставляется под токен `EXCHANGE_RATE_PORT` во всём приложении (см. `currency.module.ts`).
+**`ExchangeRateRouterAdapter`** — тоже реализация `ExchangeRatePort`, но это не "настоящий" источник данных, а **обёртка-маршрутизатор** над двумя предыдущими адаптерами. Именно этот экземпляр передаётся в `ConvertAmountUseCase` как `ExchangeRatePort` (см. `currency.module.ts`).
 
 Логика:
 1. Узнаёт, какой источник предпочитает чат (`sourcePreference.getSource(chatId)`), по умолчанию Frankfurter.

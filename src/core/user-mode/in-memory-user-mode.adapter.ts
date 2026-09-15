@@ -1,8 +1,6 @@
-import { Injectable } from "@nestjs/common";
 import type { BotMode } from "./bot-mode";
 import type { UserModePort } from "./user-mode.port";
 
-@Injectable()
 export class InMemoryUserModeAdapter implements UserModePort {
   private readonly modes = new Map<number, BotMode>();
 

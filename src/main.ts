@@ -1,18 +1,39 @@
-import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
-import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
-import { AppModule } from "./app.module";
+import { loadConfig } from "./core/config";
+import { createHttpServer } from "./core/http/http-server";
+import { createSupabaseClient } from "./core/supabase/supabase-client.factory";
+import { InMemoryUserModeAdapter } from "./core/user-mode/in-memory-user-mode.adapter";
+import { createBotModule } from "./modules/bot/bot.module";
+import { createCurrencyModule } from "./modules/currency/currency.module";
+import { createStudentModule } from "./modules/student/student.module";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({ logger: true }),
-  );
+  const config = loadConfig();
 
-  app.enableShutdownHooks();
+  // Prepared for upcoming Supabase-backed persistence; not consumed yet.
+  createSupabaseClient(config);
 
-  const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port, "0.0.0.0");
+  const userMode = new InMemoryUserModeAdapter();
+
+  const httpServer = createHttpServer();
+
+  const currency = createCurrencyModule({ config, userMode });
+  const student = createStudentModule();
+  student.registerHttpRoutes(httpServer);
+
+  const bot = createBotModule({ config, userMode, currency, student, httpServer });
+
+  // Route registration (including the optional webhook route) must happen before the
+  // HTTP server starts listening.
+  await bot.start();
+  await httpServer.listen({ port: config.port, host: "0.0.0.0" });
+
+  const shutdown = async (): Promise<void> => {
+    bot.stop();
+    await httpServer.close();
+    process.exit(0);
+  };
+  process.on("SIGINT", () => void shutdown());
+  process.on("SIGTERM", () => void shutdown());
 }
 
 bootstrap().catch((error) => {

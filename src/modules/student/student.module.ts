@@ -1,11 +1,19 @@
-import { Module } from "@nestjs/common";
-import { StudentController } from "./adapters/in/student.controller";
+import type { FastifyInstance } from "fastify";
+import { registerStudentRoutes } from "./adapters/in/student.controller";
 import { StudentBotController } from "./adapters/in/student-bot.controller";
 import { GetStudentInfoUseCase } from "./application/use-cases/get-student-info.use-case";
 
-@Module({
-  controllers: [StudentController],
-  providers: [GetStudentInfoUseCase, StudentBotController],
-  exports: [StudentBotController],
-})
-export class StudentModule {}
+export interface StudentModule {
+  botController: StudentBotController;
+  registerHttpRoutes: (app: FastifyInstance) => void;
+}
+
+export function createStudentModule(): StudentModule {
+  const getStudentInfo = new GetStudentInfoUseCase();
+  const botController = new StudentBotController(getStudentInfo);
+
+  return {
+    botController,
+    registerHttpRoutes: (app) => registerStudentRoutes(app, getStudentInfo),
+  };
+}

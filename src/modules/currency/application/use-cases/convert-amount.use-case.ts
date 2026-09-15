@@ -1,10 +1,6 @@
-import { Inject, Injectable } from "@nestjs/common";
 import { CurrencyTextParserService } from "../services/currency-text-parser.service";
-import { EXCHANGE_RATE_PORT, type ExchangeRatePort } from "../ports/exchange-rate.port";
-import {
-  TARGET_CURRENCY_PREFERENCE_PORT,
-  type TargetCurrencyPreferencePort,
-} from "../ports/target-currency-preference.port";
+import type { ExchangeRatePort } from "../ports/exchange-rate.port";
+import type { TargetCurrencyPreferencePort } from "../ports/target-currency-preference.port";
 
 export const DEFAULT_TARGET_CURRENCY = "USD";
 
@@ -15,12 +11,10 @@ export interface ConvertAmountResult {
   targetCurrency: string;
 }
 
-@Injectable()
 export class ConvertAmountUseCase {
   constructor(
     private readonly parser: CurrencyTextParserService,
-    @Inject(EXCHANGE_RATE_PORT) private readonly exchangeRate: ExchangeRatePort,
-    @Inject(TARGET_CURRENCY_PREFERENCE_PORT)
+    private readonly exchangeRate: ExchangeRatePort,
     private readonly targetCurrencyPreference: TargetCurrencyPreferencePort,
   ) {}
 

@@ -1,4 +1,3 @@
-import { Injectable } from "@nestjs/common";
 import type { Bot } from "grammy";
 import { GetStudentInfoUseCase } from "../../application/use-cases/get-student-info.use-case";
 
@@ -6,7 +5,6 @@ import { GetStudentInfoUseCase } from "../../application/use-cases/get-student-i
 // exported so that keyboard can reuse the exact same text.
 export const STUDENT_INFO_LABEL = "🎓 Студент";
 
-@Injectable()
 export class StudentBotController {
   constructor(private readonly getStudentInfo: GetStudentInfoUseCase) {}
 

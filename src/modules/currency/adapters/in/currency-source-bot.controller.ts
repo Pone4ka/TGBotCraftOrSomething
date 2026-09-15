@@ -1,9 +1,5 @@
-import { Inject, Injectable } from "@nestjs/common";
 import { InlineKeyboard, type Bot } from "grammy";
-import {
-  EXCHANGE_RATE_SOURCE_PREFERENCE_PORT,
-  type ExchangeRateSourcePreferencePort,
-} from "../../application/ports/exchange-rate-source-preference.port";
+import type { ExchangeRateSourcePreferencePort } from "../../application/ports/exchange-rate-source-preference.port";
 import { SwitchExchangeRateSourceUseCase } from "../../application/use-cases/switch-exchange-rate-source.use-case";
 import {
   DEFAULT_EXCHANGE_RATE_SOURCE,
@@ -33,11 +29,9 @@ function buildKeyboard(current: ExchangeRateSource): InlineKeyboard {
   return keyboard;
 }
 
-@Injectable()
 export class CurrencySourceBotController {
   constructor(
     private readonly switchSource: SwitchExchangeRateSourceUseCase,
-    @Inject(EXCHANGE_RATE_SOURCE_PREFERENCE_PORT)
     private readonly sourcePreference: ExchangeRateSourcePreferencePort,
   ) {}
 

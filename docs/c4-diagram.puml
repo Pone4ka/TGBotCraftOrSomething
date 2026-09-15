@@ -50,7 +50,7 @@ rectangle "Frankfurter API\n<<External System>>\n--\nFree ECB reference\nexchang
 rectangle "ExchangeRate-API\n<<External System>>\n--\nKeyed exchange-rate\nprovider (paid tier)" <<External>> as ExchangeRateApi
 
 ' ---------- Container boundary ----------
-package "Telegram Bot Backend  [Container: Node.js / NestJS / Fastify]" <<Boundary>> as Backend {
+package "Telegram Bot Backend  [Container: Node.js / TypeScript / Fastify]" <<Boundary>> as Backend {
 
   rectangle "HTTP Server\n<<Container: Fastify>>\n--\nHealth endpoint,\noptional Telegram\nwebhook endpoint" <<Container>> as Http
 
@@ -70,10 +70,6 @@ package "Telegram Bot Backend  [Container: Node.js / NestJS / Fastify]" <<Bounda
     rectangle "Frankfurter /\nExchangeRateApi\nAdapters\n<<Component>>" <<Component>> as RateAdapters
   }
 
-  package "Craft Module" <<Boundary>> {
-    rectangle "CraftBotController\n<<Component>>\n--\nPlaceholder module\n(in development)" <<Component>> as CraftCtrl
-  }
-
   package "Core" <<Boundary>> {
     rectangle "UserModePort\n(in-memory)\n<<Component>>\n--\nTracks each chat's\ncurrent mode" <<Component>> as UserMode
     rectangle "HealthController\n<<Component>>" <<Component>> as Health
@@ -90,12 +86,10 @@ Lifecycle --> TelegramCtrl : registers handlers
 Lifecycle --> MenuCtrl : registers handlers
 Lifecycle --> DebugCtrl : registers handlers
 Lifecycle --> CurrencyCtrl : registers handlers
-Lifecycle --> CraftCtrl : registers handlers
 
 TelegramCtrl --> BotUseCases : invokes
 MenuCtrl --> BotUseCases : invokes
 MenuCtrl --> UserMode : "reads/switches\nchat mode"
-CraftCtrl --> UserMode : "reads chat mode"
 
 CurrencyCtrl --> CurrencyUseCases : invokes
 CurrencyCtrl --> UserMode : "reads chat mode"

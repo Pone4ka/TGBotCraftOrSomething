@@ -1,5 +1,3 @@
-export const TARGET_CURRENCY_PREFERENCE_PORT = Symbol("TargetCurrencyPreferencePort");
-
 export interface TargetCurrencyPreferencePort {
   getCurrency(chatId: number): string | undefined;
   setCurrency(chatId: number, currency: string): void;

@@ -1,14 +1,6 @@
-import { Controller, Get } from "@nestjs/common";
+import type { FastifyInstance } from "fastify";
 
-@Controller()
-export class HealthController {
-  @Get()
-  checkRoot(): { status: "ok" } {
-    return { status: "ok" };
-  }
-
-  @Get("health")
-  checkHealth(): { status: "ok" } {
-    return { status: "ok" };
-  }
+export function registerHealthRoutes(app: FastifyInstance): void {
+  app.get("/", async () => ({ status: "ok" }));
+  app.get("/health", async () => ({ status: "ok" }));
 }
