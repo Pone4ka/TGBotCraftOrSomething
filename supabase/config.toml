@@ -1,0 +1,10 @@
+project_id = "untitled11"
+
+[functions.bot]
+verify_jwt = false
+
+[functions.currency]
+verify_jwt = false
+
+[functions.student]
+verify_jwt = false

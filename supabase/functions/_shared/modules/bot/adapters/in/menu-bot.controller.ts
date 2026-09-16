@@ -1,10 +1,10 @@
-import { Keyboard, type Bot } from "grammy";
-import { CHANGE_API_LABEL } from "../../../currency/adapters/in/currency-source-bot.controller";
-import { CHOOSE_CURRENCY_LABEL } from "../../../currency/adapters/in/currency-bot.controller";
-import { STUDENT_INFO_LABEL } from "../../../student/adapters/in/student-bot.controller";
-import { SwitchModeUseCase } from "../../application/use-cases/switch-mode.use-case";
-import { DEFAULT_BOT_MODE, type BotMode } from "../../../../core/user-mode/bot-mode";
-import type { UserModePort } from "../../../../core/user-mode/user-mode.port";
+import { Keyboard, type Bot } from "npm:grammy@1.46.0";
+import { CHANGE_API_LABEL } from "../../../currency/adapters/in/currency-source-bot.controller.ts";
+import { CHOOSE_CURRENCY_LABEL } from "../../../currency/adapters/in/currency-bot.controller.ts";
+import { STUDENT_INFO_LABEL } from "../../../student/adapters/in/student-bot.controller.ts";
+import { SwitchModeUseCase } from "../../application/use-cases/switch-mode.use-case.ts";
+import { DEFAULT_BOT_MODE, type BotMode } from "../../../../core/bot-mode.ts";
+import type { UserModePort } from "../../../../core/user-mode.port.ts";
 
 const HOME_CURRENCY_LABEL = "💱 Валюты";
 const BACK_LABEL = "◀️ Назад";
@@ -57,14 +57,14 @@ export class MenuBotController {
   }
 
   // Registered separately, and only after every module controller's own handlers (see
-  // bot-lifecycle.service.ts): this is a catch-all for text that nothing else recognized.
+  // functions/bot/index.ts): this is a catch-all for text that nothing else recognized.
   // Registering it alongside registerHandlers() (i.e. before module controllers such as
   // StudentBotController) would intercept every home-screen button press — e.g. "🎓
   // Студент" — with the generic "choose a mode" prompt before the real handler ever runs.
   registerFallback(bot: Bot): void {
     bot.on("message:text", async (ctx, next) => {
       const isBotCommand = ctx.message.entities?.some((entity) => entity.type === "bot_command") ?? false;
-      const mode = this.userMode.getMode(ctx.chat.id) ?? DEFAULT_BOT_MODE;
+      const mode = (await this.userMode.getMode(ctx.chat.id)) ?? DEFAULT_BOT_MODE;
       if (isBotCommand || mode !== "home") {
         await next();
         return;
@@ -79,7 +79,7 @@ export class MenuBotController {
     chatId: number,
     ctx: { reply: (text: string, other?: { reply_markup: Keyboard }) => Promise<unknown> },
   ): Promise<void> {
-    this.switchMode.execute({ chatId, mode: "home" });
+    await this.switchMode.execute({ chatId, mode: "home" });
     await ctx.reply(HOME_PROMPT, { reply_markup: HOME_KEYBOARD });
   }
 
@@ -90,7 +90,7 @@ export class MenuBotController {
     mode: Exclude<BotMode, "home">,
     ctx: { reply: (text: string, other?: { reply_markup: Keyboard }) => Promise<unknown> },
   ): Promise<void> {
-    this.switchMode.execute({ chatId, mode });
+    await this.switchMode.execute({ chatId, mode });
     await ctx.reply(MODE_REPLIES[mode], { reply_markup: MODE_KEYBOARDS[mode] });
   }
 }

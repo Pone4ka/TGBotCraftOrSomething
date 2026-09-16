@@ -4,6 +4,6 @@ const STUDENT_ID = 6914;
 
 export class GetStudentInfoUseCase {
   execute(): StudentInfo {
-    return { message: "hello", studentId: STUDENT_ID };
+    return { message: "hello, it-incubator", studentId: STUDENT_ID };
   }
 }

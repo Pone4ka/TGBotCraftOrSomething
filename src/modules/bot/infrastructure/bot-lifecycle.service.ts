@@ -38,6 +38,10 @@ export class BotLifecycleService {
     this.deps.currencySourceController.registerHandlers(bot);
     this.deps.currencyController.registerHandlers(bot);
     this.deps.studentController.registerHandlers(bot);
+    // Fallback goes last: it catches any text no module controller above recognized.
+    // Registering it earlier would intercept home-screen buttons (e.g. "🎓 Студент")
+    // with the generic "choose a mode" prompt before the real handler got a chance to run.
+    this.deps.menuController.registerFallback(bot);
     this.deps.controller.registerHandlers(bot);
     await bot.init();
 

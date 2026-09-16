@@ -11,7 +11,8 @@
 3. [`modules/bot.md`](./modules/bot.md) — ядро бота: приём сообщений от Telegram, меню, запуск.
 4. [`modules/currency.md`](./modules/currency.md) — модуль конвертации валют (самая содержательная часть проекта).
 5. [`request-flow.md`](./request-flow.md) — сквозной пример: что происходит с момента, когда пользователь написал боту, до момента ответа.
-6. `c4-diagram.puml` — диаграмма в формате PlantUML (C4-модель), можно открыть в IntelliJ/WebStorm с плагином PlantUML или на сайте plantuml.com.
+6. [`modules/edge-functions.md`](./modules/edge-functions.md) — тот же функционал, упакованный в Supabase Edge Functions (`supabase/functions/`), с состоянием в Postgres вместо памяти процесса.
+7. `c4-diagram.puml` — диаграмма в формате PlantUML (C4-модель), можно открыть в IntelliJ/WebStorm с плагином PlantUML или на сайте plantuml.com.
 
 ## Быстрый старт (как запустить)
 

@@ -1,6 +1,8 @@
 /tmp
 /out-tsc
 .env
+supabase/functions/.env
+supabase/.temp
 
 /dist
 /node_modules

@@ -1,0 +1,33 @@
+import type { ExchangeRatePort } from "../../application/ports/exchange-rate.port.ts";
+import type { ExchangeRateSourcePreferencePort } from "../../application/ports/exchange-rate-source-preference.port.ts";
+import { DEFAULT_EXCHANGE_RATE_SOURCE } from "../../domain/exchange-rate-source.ts";
+import { UnsupportedCurrencyBySourceException } from "../../domain/exceptions/unsupported-currency-by-source.exception.ts";
+import { ExchangeRateApiAdapter } from "./exchange-rate-api.adapter.ts";
+import { FrankfurterExchangeRateAdapter } from "./frankfurter-exchange-rate.adapter.ts";
+
+/** Picks the exchange rate source per chat, falling back to ExchangeRate-API for
+ * currencies Frankfurter's ECB feed doesn't carry. */
+export class ExchangeRateRouterAdapter implements ExchangeRatePort {
+  constructor(
+    private readonly frankfurter: FrankfurterExchangeRateAdapter,
+    private readonly exchangeRateApi: ExchangeRateApiAdapter,
+    private readonly sourcePreference: ExchangeRateSourcePreferencePort,
+  ) {}
+
+  async convert(amount: number, fromCurrency: string, toCurrency: string, chatId: number): Promise<number> {
+    const source = (await this.sourcePreference.getSource(chatId)) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
+
+    if (source === "exchangerate-api") {
+      return this.exchangeRateApi.convert(amount, fromCurrency, toCurrency);
+    }
+
+    try {
+      return await this.frankfurter.convert(amount, fromCurrency, toCurrency);
+    } catch (error) {
+      if (error instanceof UnsupportedCurrencyBySourceException) {
+        return this.exchangeRateApi.convert(amount, fromCurrency, toCurrency);
+      }
+      throw error;
+    }
+  }
+}
