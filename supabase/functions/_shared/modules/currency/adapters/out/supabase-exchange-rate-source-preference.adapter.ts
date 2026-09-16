@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "../../../../core/supabase-client.ts";
+import { getSupabaseClient } from "../../../../core/supabase/supabase-client.ts";
 import type { ExchangeRateSourcePreferencePort } from "../../application/ports/exchange-rate-source-preference.port.ts";
 import type { ExchangeRateSource } from "../../domain/exchange-rate-source.ts";
 

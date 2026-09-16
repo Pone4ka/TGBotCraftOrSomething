@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/domain/bot-command.entity.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { InvalidCommandFormatException } from "./exceptions/invalid-command-format.exception.ts";
 
 export class BotCommand {

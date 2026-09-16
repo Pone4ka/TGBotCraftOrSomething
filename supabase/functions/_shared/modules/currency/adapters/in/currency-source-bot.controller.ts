@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/adapters/in/currency-source-bot.controller.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { InlineKeyboard, type Bot } from "npm:grammy@1.46.0";
 import type { ExchangeRateSourcePreferencePort } from "../../application/ports/exchange-rate-source-preference.port.ts";
 import { SwitchExchangeRateSourceUseCase } from "../../application/use-cases/switch-exchange-rate-source.use-case.ts";

@@ -11,6 +11,47 @@
   вместо in-memory `Map` — иначе оно бы терялось между вызовами, ведь каждый вызов edge-функции
   может обслуживаться новым изолятом.
 
+## Один источник бизнес-логики для двух рантаймов
+
+`supabase/functions/_shared/` **не редактируется руками** — это сгенерированная копия
+`src/` (см. `scripts/generate-edge-shared.mjs`). Domain/application/adapters-in слои
+`bot`, `currency`, `student` — чистый TypeScript без Node-специфичных API, и раз порты
+состояния (`UserModePort`, `ExchangeRateSourcePreferencePort`,
+`TargetCurrencyPreferencePort`) асинхронные (см. `src/core/user-mode/user-mode.port.ts`),
+их код буквально идентичен что под Node, что под Deno. Единственная реальная разница —
+синтаксис модулей: Node/tsc резолвит relative-импорты без расширения и голые имена
+пакетов, Deno требует `.ts` на relative-импортах и `npm:`-спецификатор с версией для
+npm-пакетов. Генератор копирует файл и механически переписывает только это.
+
+**Правило: правишь бизнес-логику — правишь только `src/`.** После изменений:
+
+```bash
+pnpm sync:edge                # перегенерировать supabase/functions/_shared из src/
+supabase functions deploy bot # и любые другие затронутые функции
+```
+
+Раньше (до этого рефакторинга) `_shared` поддерживался руками отдельной копией — из-за
+этого один и тот же баг (порядок регистрации обработчиков в `MenuBotController`) пришлось
+чинить дважды в двух местах. Теперь чинить нужно только `src/`.
+
+Каждый файл в `_shared` начинается с комментария `// GENERATED FILE — do not edit
+directly` с указанием исходника — если видите такой комментарий, редактируйте файл,
+который он называет, а не этот.
+
+### Что НЕ генерируется (остаётся написанным руками отдельно для Deno)
+
+- `_shared/core/config.ts`, `_shared/core/supabase/supabase-client.ts` — Deno-специфичное
+  чтение `Deno.env` и создание Supabase-клиента.
+- `_shared/core/user-mode/supabase-user-mode.adapter.ts` и
+  `_shared/modules/currency/adapters/out/supabase-*-preference.adapter.ts` — Postgres-backed
+  реализации портов (Node-аналоги — `InMemory*Adapter` в `src/`, они не годятся для
+  serverless, см. ниже).
+- `_shared/modules/currency/currency.module.ts` и `_shared/modules/student/student.module.ts`
+  — фабрики, которые связывают адаптеры; для Deno они подключают Supabase-адаптеры вместо
+  in-memory и (для currency) дополнительно отдают `convertAmount`/`parser` наружу для
+  standalone HTTP-эндпоинта.
+- Сами точки входа `functions/{bot,currency,student}/index.ts`.
+
 ## Структура
 
 ```
@@ -19,12 +60,22 @@ supabase/
 ├── migrations/
 │   └── ..._bot_state_tables.sql   — таблицы для состояния чата (замена in-memory адаптеров)
 └── functions/
-    ├── _shared/                    — общий код модулей, импортируется всеми функциями
-    │   ├── core/                     (domain-exception, bot-mode, user-mode.port + Supabase-адаптер)
+    ├── _shared/                    — СГЕНЕРИРОВАНО из src/, см. выше; структура папок
+    │   │                              зеркалит src/ 1:1 (core/, modules/{bot,currency,student}/)
+    │   ├── core/
+    │   │   ├── config.ts                      (руками)
+    │   │   ├── domain/domain-exception.ts      (генерируется)
+    │   │   ├── supabase/supabase-client.ts    (руками)
+    │   │   └── user-mode/
+    │   │       ├── bot-mode.ts                 (генерируется)
+    │   │       ├── user-mode.port.ts           (генерируется)
+    │   │       └── supabase-user-mode.adapter.ts (руками)
     │   └── modules/
-    │       ├── bot/                  (то же самое, что src/modules/bot, но без polling)
-    │       ├── currency/             (то же самое, что src/modules/currency, порты асинхронные)
-    │       └── student/               (то же самое, что src/modules/student)
+    │       ├── bot/       (domain/application/adapters-in — генерируется)
+    │       ├── currency/  (domain/application/adapters-in — генерируется;
+    │       │               adapters/out/supabase-*.ts и currency.module.ts — руками)
+    │       └── student/   (domain/application/adapters-in — генерируется;
+    │                       student.module.ts — руками)
     ├── bot/index.ts                 — единственная точка входа Telegram-вебхука
     ├── currency/index.ts             — HTTP-эндпоинт конвертации (POST)
     └── student/index.ts               — HTTP-эндпоинт информации о студенте (GET)
@@ -56,9 +107,11 @@ Telegram-трафик всегда приходит в `bot`. Модуль `stud
 | `currency_source_preferences` | `InMemoryExchangeRateSourcePreferenceAdapter` |
 | `currency_target_preferences` | `InMemoryTargetCurrencyPreferenceAdapter` |
 
-Все асинхронные версии портов (`UserModePort`, `ExchangeRateSourcePreferencePort`,
-`TargetCurrencyPreferencePort`) под `_shared/` возвращают `Promise` — в отличие от
-синхронных портов в `src/`, — потому что чтение/запись идёт через `@supabase/supabase-js`.
+Порты (`UserModePort`, `ExchangeRateSourcePreferencePort`, `TargetCurrencyPreferencePort`)
+асинхронные и в `src/`, и в `_shared/` (буквально один и тот же сгенерированный файл) —
+именно это позволяет `InMemory*Adapter` (Node, синхронная реализация, обёрнутая в `Promise`)
+и `Supabase*Adapter` (Deno, реальный I/O через `@supabase/supabase-js`) реализовывать один
+и тот же интерфейс, не заставляя use-case'ы и контроллеры знать, какая реализация под капотом.
 
 ## Локальный запуск и деплой
 

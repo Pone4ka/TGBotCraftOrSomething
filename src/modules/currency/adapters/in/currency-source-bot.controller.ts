@@ -38,7 +38,7 @@ export class CurrencySourceBotController {
   registerHandlers(bot: Bot): void {
     const showPicker = async (ctx: { chat?: { id: number }; reply: (text: string, other?: { reply_markup: InlineKeyboard }) => Promise<unknown> }): Promise<void> => {
       const chatId = ctx.chat!.id;
-      const current = this.sourcePreference.getSource(chatId) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
+      const current = (await this.sourcePreference.getSource(chatId)) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
       await ctx.reply(PROMPT_TEXT, { reply_markup: buildKeyboard(current) });
     };
 
@@ -54,7 +54,7 @@ export class CurrencySourceBotController {
       }
 
       try {
-        this.switchSource.execute({ chatId, source: raw });
+        await this.switchSource.execute({ chatId, source: raw });
       } catch (error) {
         if (error instanceof ExchangeRateSourceUnchangedException) {
           // Same source re-selected: nothing changed, so skip editMessageText — Telegram

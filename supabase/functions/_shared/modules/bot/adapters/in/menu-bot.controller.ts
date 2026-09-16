@@ -1,10 +1,13 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/adapters/in/menu-bot.controller.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { Keyboard, type Bot } from "npm:grammy@1.46.0";
 import { CHANGE_API_LABEL } from "../../../currency/adapters/in/currency-source-bot.controller.ts";
 import { CHOOSE_CURRENCY_LABEL } from "../../../currency/adapters/in/currency-bot.controller.ts";
 import { STUDENT_INFO_LABEL } from "../../../student/adapters/in/student-bot.controller.ts";
 import { SwitchModeUseCase } from "../../application/use-cases/switch-mode.use-case.ts";
-import { DEFAULT_BOT_MODE, type BotMode } from "../../../../core/bot-mode.ts";
-import type { UserModePort } from "../../../../core/user-mode.port.ts";
+import { DEFAULT_BOT_MODE, type BotMode } from "../../../../core/user-mode/bot-mode.ts";
+import type { UserModePort } from "../../../../core/user-mode/user-mode.port.ts";
 
 const HOME_CURRENCY_LABEL = "💱 Валюты";
 const BACK_LABEL = "◀️ Назад";
@@ -57,7 +60,7 @@ export class MenuBotController {
   }
 
   // Registered separately, and only after every module controller's own handlers (see
-  // functions/bot/index.ts): this is a catch-all for text that nothing else recognized.
+  // bot-lifecycle.service.ts): this is a catch-all for text that nothing else recognized.
   // Registering it alongside registerHandlers() (i.e. before module controllers such as
   // StudentBotController) would intercept every home-screen button press — e.g. "🎓
   // Студент" — with the generic "choose a mode" prompt before the real handler ever runs.

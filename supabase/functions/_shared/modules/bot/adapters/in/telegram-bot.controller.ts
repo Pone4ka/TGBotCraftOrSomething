@@ -1,7 +1,10 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/adapters/in/telegram-bot.controller.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import type { Bot } from "npm:grammy@1.46.0";
 import { ReceiveMessageUseCase } from "../../application/use-cases/receive-message.use-case.ts";
 import { ReceiveCommandUseCase } from "../../application/use-cases/receive-command.use-case.ts";
-import { DomainException } from "../../../../core/domain-exception.ts";
+import { DomainException } from "../../../../core/domain/domain-exception.ts";
 
 export class TelegramBotController {
   constructor(

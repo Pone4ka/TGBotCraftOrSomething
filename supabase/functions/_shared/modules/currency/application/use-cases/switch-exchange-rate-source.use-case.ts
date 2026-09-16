@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/application/use-cases/switch-exchange-rate-source.use-case.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { DEFAULT_EXCHANGE_RATE_SOURCE, type ExchangeRateSource } from "../../domain/exchange-rate-source.ts";
 import { ExchangeRateSourceUnchangedException } from "../../domain/exceptions/exchange-rate-source-unchanged.exception.ts";
 import type { ExchangeRateSourcePreferencePort } from "../ports/exchange-rate-source-preference.port.ts";

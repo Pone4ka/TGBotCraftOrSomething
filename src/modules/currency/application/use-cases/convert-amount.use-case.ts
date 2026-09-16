@@ -22,7 +22,7 @@ export class ConvertAmountUseCase {
     const parsed = this.parser.parse(text);
     if (!parsed) return null;
 
-    const targetCurrency = this.targetCurrencyPreference.getCurrency(chatId) ?? DEFAULT_TARGET_CURRENCY;
+    const targetCurrency = (await this.targetCurrencyPreference.getCurrency(chatId)) ?? DEFAULT_TARGET_CURRENCY;
 
     if (parsed.currency === targetCurrency) {
       return { amount: parsed.amount, currency: parsed.currency, converted: parsed.amount, targetCurrency };

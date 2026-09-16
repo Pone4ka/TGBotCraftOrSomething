@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/domain/chat-message.entity.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { EmptyMessageTextException } from "./exceptions/empty-message-text.exception.ts";
 
 export interface ChatMessageProps {

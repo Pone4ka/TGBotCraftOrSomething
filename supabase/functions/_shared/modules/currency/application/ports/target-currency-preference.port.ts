@@ -1,5 +1,7 @@
-// Async, unlike the Node app's port: state has to persist across stateless edge-function
-// invocations, so it's backed by Postgres instead of an in-memory Map/Set.
+// GENERATED FILE — do not edit directly, edit src/modules/currency/application/ports/target-currency-preference.port.ts instead.
+// Regenerate with: pnpm sync:edge
+
+// Async for the same reason as UserModePort — see its comment.
 export interface TargetCurrencyPreferencePort {
   getCurrency(chatId: number): Promise<string | undefined>;
   setCurrency(chatId: number, currency: string): Promise<void>;

@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/application/use-cases/convert-amount.use-case.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { CurrencyTextParserService } from "../services/currency-text-parser.service.ts";
 import type { ExchangeRatePort } from "../ports/exchange-rate.port.ts";
 import type { TargetCurrencyPreferencePort } from "../ports/target-currency-preference.port.ts";

@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/application/services/currency-text-parser.service.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { CURRENCY_ALIASES } from "../../domain/currency-alias.dictionary.ts";
 import type { ParsedAmount } from "../../domain/parsed-amount.ts";
 

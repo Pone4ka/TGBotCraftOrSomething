@@ -4,11 +4,11 @@ import type { ExchangeRateSourcePreferencePort } from "../../application/ports/e
 export class InMemoryExchangeRateSourcePreferenceAdapter implements ExchangeRateSourcePreferencePort {
   private readonly sources = new Map<number, ExchangeRateSource>();
 
-  getSource(chatId: number): ExchangeRateSource | undefined {
+  async getSource(chatId: number): Promise<ExchangeRateSource | undefined> {
     return this.sources.get(chatId);
   }
 
-  setSource(chatId: number, source: ExchangeRateSource): void {
+  async setSource(chatId: number, source: ExchangeRateSource): Promise<void> {
     this.sources.set(chatId, source);
   }
 }

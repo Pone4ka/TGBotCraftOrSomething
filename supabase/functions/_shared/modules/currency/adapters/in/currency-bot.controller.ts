@@ -1,7 +1,10 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/adapters/in/currency-bot.controller.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import type { Bot } from "npm:grammy@1.46.0";
-import { DomainException } from "../../../../core/domain-exception.ts";
-import { DEFAULT_BOT_MODE } from "../../../../core/bot-mode.ts";
-import type { UserModePort } from "../../../../core/user-mode.port.ts";
+import { DomainException } from "../../../../core/domain/domain-exception.ts";
+import { DEFAULT_BOT_MODE } from "../../../../core/user-mode/bot-mode.ts";
+import type { UserModePort } from "../../../../core/user-mode/user-mode.port.ts";
 import { CurrencyTextParserService } from "../../application/services/currency-text-parser.service.ts";
 import { ConvertAmountUseCase } from "../../application/use-cases/convert-amount.use-case.ts";
 import type { TargetCurrencyPreferencePort } from "../../application/ports/target-currency-preference.port.ts";

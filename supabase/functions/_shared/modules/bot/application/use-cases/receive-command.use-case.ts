@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/application/use-cases/receive-command.use-case.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { BotCommand } from "../../domain/bot-command.entity.ts";
 import type { UpdateLoggerPort } from "../ports/update-logger.port.ts";
 

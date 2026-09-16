@@ -1,5 +1,8 @@
-import type { BotMode } from "../../../../core/bot-mode.ts";
-import type { UserModePort } from "../../../../core/user-mode.port.ts";
+// GENERATED FILE — do not edit directly, edit src/modules/bot/application/use-cases/switch-mode.use-case.ts instead.
+// Regenerate with: pnpm sync:edge
+
+import type { BotMode } from "../../../../core/user-mode/bot-mode.ts";
+import type { UserModePort } from "../../../../core/user-mode/user-mode.port.ts";
 
 export interface SwitchModeInput {
   chatId: number;

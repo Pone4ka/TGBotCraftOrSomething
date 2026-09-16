@@ -21,29 +21,29 @@ export class CurrencyBotController {
 
   registerHandlers(bot: Bot): void {
     bot.hears(CHOOSE_CURRENCY_LABEL, async (ctx, next) => {
-      const mode = this.userMode.getMode(ctx.chat.id) ?? DEFAULT_BOT_MODE;
+      const mode = (await this.userMode.getMode(ctx.chat.id)) ?? DEFAULT_BOT_MODE;
       if (mode !== "currency") {
         await next();
         return;
       }
 
-      this.targetCurrencyPreference.setAwaitingSelection(ctx.chat.id, true);
+      await this.targetCurrencyPreference.setAwaitingSelection(ctx.chat.id, true);
       await ctx.reply(CHOOSE_CURRENCY_PROMPT);
     });
 
     bot.on("message:text", async (ctx, next) => {
       const isBotCommand = ctx.message.entities?.some((entity) => entity.type === "bot_command") ?? false;
-      const mode = this.userMode.getMode(ctx.chat.id) ?? DEFAULT_BOT_MODE;
+      const mode = (await this.userMode.getMode(ctx.chat.id)) ?? DEFAULT_BOT_MODE;
       if (isBotCommand || mode !== "currency") {
         await next();
         return;
       }
 
-      if (this.targetCurrencyPreference.isAwaitingSelection(ctx.chat.id)) {
+      if (await this.targetCurrencyPreference.isAwaitingSelection(ctx.chat.id)) {
         const currency = this.parser.parseCurrencyName(ctx.message.text);
         if (currency) {
-          this.targetCurrencyPreference.setCurrency(ctx.chat.id, currency);
-          this.targetCurrencyPreference.setAwaitingSelection(ctx.chat.id, false);
+          await this.targetCurrencyPreference.setCurrency(ctx.chat.id, currency);
+          await this.targetCurrencyPreference.setAwaitingSelection(ctx.chat.id, false);
           await ctx.reply(`Валюта для конвертации: ${currency}`);
         } else {
           await ctx.reply("Не удалось распознать валюту, попробуйте ещё раз");

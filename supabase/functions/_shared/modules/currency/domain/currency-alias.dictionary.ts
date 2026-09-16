@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/domain/currency-alias.dictionary.ts instead.
+// Regenerate with: pnpm sync:edge
+
 /**
  * Maps free-form currency mentions (words, abbreviations, symbols) to ISO 4217 codes.
  * Keys are matched case-insensitively as whole tokens next to a number.

@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "../../../../core/supabase-client.ts";
+import { getSupabaseClient } from "../../../../core/supabase/supabase-client.ts";
 import type { TargetCurrencyPreferencePort } from "../../application/ports/target-currency-preference.port.ts";
 
 const TABLE = "currency_target_preferences";

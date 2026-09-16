@@ -15,7 +15,7 @@ export class ExchangeRateRouterAdapter implements ExchangeRatePort {
   ) {}
 
   async convert(amount: number, fromCurrency: string, toCurrency: string, chatId: number): Promise<number> {
-    const source = this.sourcePreference.getSource(chatId) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
+    const source = (await this.sourcePreference.getSource(chatId)) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
 
     if (source === "exchangerate-api") {
       return this.exchangeRateApi.convert(amount, fromCurrency, toCurrency);

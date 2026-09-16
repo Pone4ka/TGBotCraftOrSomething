@@ -1,4 +1,4 @@
-import type { UserModePort } from "../../core/user-mode.port.ts";
+import type { UserModePort } from "../../core/user-mode/user-mode.port.ts";
 import { CurrencyBotController } from "./adapters/in/currency-bot.controller.ts";
 import { CurrencySourceBotController } from "./adapters/in/currency-source-bot.controller.ts";
 import { ExchangeRateApiAdapter } from "./adapters/out/exchange-rate-api.adapter.ts";

@@ -1,9 +1,12 @@
 import type { BotMode } from "./bot-mode.ts";
 import type { UserModePort } from "./user-mode.port.ts";
-import { getSupabaseClient } from "./supabase-client.ts";
+import { getSupabaseClient } from "../supabase/supabase-client.ts";
 
 const TABLE = "bot_user_modes";
 
+// Deno/Postgres counterpart of src/core/user-mode/in-memory-user-mode.adapter.ts: same
+// UserModePort contract, backed by a table instead of a Map because edge functions are
+// stateless per invocation.
 export class SupabaseUserModeAdapter implements UserModePort {
   async getMode(chatId: number): Promise<BotMode | undefined> {
     const { data, error } = await getSupabaseClient()

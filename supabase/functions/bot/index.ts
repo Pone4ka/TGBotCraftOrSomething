@@ -1,6 +1,6 @@
 import { Bot, webhookCallback } from "npm:grammy@1.46.0";
 import { loadConfig } from "../_shared/core/config.ts";
-import { SupabaseUserModeAdapter } from "../_shared/core/supabase-user-mode.adapter.ts";
+import { SupabaseUserModeAdapter } from "../_shared/core/user-mode/supabase-user-mode.adapter.ts";
 import { createCurrencyModule } from "../_shared/modules/currency/currency.module.ts";
 import { createStudentModule } from "../_shared/modules/student/student.module.ts";
 import { DebugBotController } from "../_shared/modules/bot/adapters/in/debug-bot.controller.ts";

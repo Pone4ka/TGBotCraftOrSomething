@@ -10,12 +10,12 @@ export interface SwitchExchangeRateSourceInput {
 export class SwitchExchangeRateSourceUseCase {
   constructor(private readonly sourcePreference: ExchangeRateSourcePreferencePort) {}
 
-  execute(input: SwitchExchangeRateSourceInput): void {
-    const current = this.sourcePreference.getSource(input.chatId) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
+  async execute(input: SwitchExchangeRateSourceInput): Promise<void> {
+    const current = (await this.sourcePreference.getSource(input.chatId)) ?? DEFAULT_EXCHANGE_RATE_SOURCE;
     if (current === input.source) {
       throw new ExchangeRateSourceUnchangedException(input.source);
     }
 
-    this.sourcePreference.setSource(input.chatId, input.source);
+    await this.sourcePreference.setSource(input.chatId, input.source);
   }
 }

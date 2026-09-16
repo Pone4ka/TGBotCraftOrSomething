@@ -4,11 +4,11 @@ import type { UserModePort } from "./user-mode.port";
 export class InMemoryUserModeAdapter implements UserModePort {
   private readonly modes = new Map<number, BotMode>();
 
-  getMode(chatId: number): BotMode | undefined {
+  async getMode(chatId: number): Promise<BotMode | undefined> {
     return this.modes.get(chatId);
   }
 
-  setMode(chatId: number, mode: BotMode): void {
+  async setMode(chatId: number, mode: BotMode): Promise<void> {
     this.modes.set(chatId, mode);
   }
 }

@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/adapters/out/exchange-rate-api.adapter.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import type { ExchangeRatePort } from "../../application/ports/exchange-rate.port.ts";
 import { ExchangeRateApiException } from "../../domain/exceptions/exchange-rate-api.exception.ts";
 

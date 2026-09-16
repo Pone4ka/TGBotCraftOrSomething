@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/adapters/out/exchange-rate-router.adapter.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import type { ExchangeRatePort } from "../../application/ports/exchange-rate.port.ts";
 import type { ExchangeRateSourcePreferencePort } from "../../application/ports/exchange-rate-source-preference.port.ts";
 import { DEFAULT_EXCHANGE_RATE_SOURCE } from "../../domain/exchange-rate-source.ts";

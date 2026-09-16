@@ -4,19 +4,19 @@ export class InMemoryTargetCurrencyPreferenceAdapter implements TargetCurrencyPr
   private readonly currencies = new Map<number, string>();
   private readonly awaitingSelection = new Set<number>();
 
-  getCurrency(chatId: number): string | undefined {
+  async getCurrency(chatId: number): Promise<string | undefined> {
     return this.currencies.get(chatId);
   }
 
-  setCurrency(chatId: number, currency: string): void {
+  async setCurrency(chatId: number, currency: string): Promise<void> {
     this.currencies.set(chatId, currency);
   }
 
-  isAwaitingSelection(chatId: number): boolean {
+  async isAwaitingSelection(chatId: number): Promise<boolean> {
     return this.awaitingSelection.has(chatId);
   }
 
-  setAwaitingSelection(chatId: number, awaiting: boolean): void {
+  async setAwaitingSelection(chatId: number, awaiting: boolean): Promise<void> {
     if (awaiting) {
       this.awaitingSelection.add(chatId);
     } else {

@@ -1,5 +1,8 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/adapters/in/debug-bot.controller.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import type { Bot } from "npm:grammy@1.46.0";
-import type { UserModePort } from "../../../../core/user-mode.port.ts";
+import type { UserModePort } from "../../../../core/user-mode/user-mode.port.ts";
 import type { ExchangeRateSourcePreferencePort } from "../../../currency/application/ports/exchange-rate-source-preference.port.ts";
 import type { TargetCurrencyPreferencePort } from "../../../currency/application/ports/target-currency-preference.port.ts";
 

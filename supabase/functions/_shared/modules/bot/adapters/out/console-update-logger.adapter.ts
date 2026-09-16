@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/adapters/out/console-update-logger.adapter.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import type { UpdateLoggerPort } from "../../application/ports/update-logger.port.ts";
 import type { ChatMessage } from "../../domain/chat-message.entity.ts";
 import type { BotCommand } from "../../domain/bot-command.entity.ts";

@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/bot/application/use-cases/receive-message.use-case.ts instead.
+// Regenerate with: pnpm sync:edge
+
 import { ChatMessage } from "../../domain/chat-message.entity.ts";
 import type { UpdateLoggerPort } from "../ports/update-logger.port.ts";
 

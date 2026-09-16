@@ -1,7 +1,7 @@
 import { loadConfig } from "../_shared/core/config.ts";
-import { SupabaseUserModeAdapter } from "../_shared/core/supabase-user-mode.adapter.ts";
+import { SupabaseUserModeAdapter } from "../_shared/core/user-mode/supabase-user-mode.adapter.ts";
 import { createCurrencyModule } from "../_shared/modules/currency/currency.module.ts";
-import { DomainException } from "../_shared/core/domain-exception.ts";
+import { DomainException } from "../_shared/core/domain/domain-exception.ts";
 
 // Standalone HTTP entry point for the currency module: the Node app never exposed one
 // (currency was only reachable through the bot's text handlers), but as an edge function

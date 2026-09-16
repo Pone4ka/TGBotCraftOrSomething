@@ -64,7 +64,7 @@ export class MenuBotController {
   registerFallback(bot: Bot): void {
     bot.on("message:text", async (ctx, next) => {
       const isBotCommand = ctx.message.entities?.some((entity) => entity.type === "bot_command") ?? false;
-      const mode = this.userMode.getMode(ctx.chat.id) ?? DEFAULT_BOT_MODE;
+      const mode = (await this.userMode.getMode(ctx.chat.id)) ?? DEFAULT_BOT_MODE;
       if (isBotCommand || mode !== "home") {
         await next();
         return;
@@ -79,7 +79,7 @@ export class MenuBotController {
     chatId: number,
     ctx: { reply: (text: string, other?: { reply_markup: Keyboard }) => Promise<unknown> },
   ): Promise<void> {
-    this.switchMode.execute({ chatId, mode: "home" });
+    await this.switchMode.execute({ chatId, mode: "home" });
     await ctx.reply(HOME_PROMPT, { reply_markup: HOME_KEYBOARD });
   }
 
@@ -90,7 +90,7 @@ export class MenuBotController {
     mode: Exclude<BotMode, "home">,
     ctx: { reply: (text: string, other?: { reply_markup: Keyboard }) => Promise<unknown> },
   ): Promise<void> {
-    this.switchMode.execute({ chatId, mode });
+    await this.switchMode.execute({ chatId, mode });
     await ctx.reply(MODE_REPLIES[mode], { reply_markup: MODE_KEYBOARDS[mode] });
   }
 }

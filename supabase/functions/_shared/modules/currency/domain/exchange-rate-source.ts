@@ -1,3 +1,6 @@
+// GENERATED FILE — do not edit directly, edit src/modules/currency/domain/exchange-rate-source.ts instead.
+// Regenerate with: pnpm sync:edge
+
 export const EXCHANGE_RATE_SOURCES = ["frankfurter", "exchangerate-api"] as const;
 
 export type ExchangeRateSource = (typeof EXCHANGE_RATE_SOURCES)[number];

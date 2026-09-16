@@ -9,7 +9,7 @@ export interface SwitchModeInput {
 export class SwitchModeUseCase {
   constructor(private readonly userMode: UserModePort) {}
 
-  execute(input: SwitchModeInput): void {
-    this.userMode.setMode(input.chatId, input.mode);
+  async execute(input: SwitchModeInput): Promise<void> {
+    await this.userMode.setMode(input.chatId, input.mode);
   }
 }

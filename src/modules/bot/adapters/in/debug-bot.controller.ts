@@ -22,10 +22,10 @@ export class DebugBotController {
       const record = {
         chatId,
         userId: ctx.from?.id,
-        mode: this.userMode.getMode(chatId),
-        exchangeRateSource: this.sourcePreference.getSource(chatId),
-        targetCurrency: this.targetCurrencyPreference.getCurrency(chatId),
-        awaitingCurrencySelection: this.targetCurrencyPreference.isAwaitingSelection(chatId),
+        mode: await this.userMode.getMode(chatId),
+        exchangeRateSource: await this.sourcePreference.getSource(chatId),
+        targetCurrency: await this.targetCurrencyPreference.getCurrency(chatId),
+        awaitingCurrencySelection: await this.targetCurrencyPreference.isAwaitingSelection(chatId),
       };
 
       await ctx.reply(JSON.stringify(record, null, 2));
