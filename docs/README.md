@@ -26,9 +26,16 @@ pnpm build && pnpm start   # прод-сборка
 
 - `BOT_TOKEN` — токен Telegram-бота от [@BotFather](https://t.me/BotFather)
 - `EXCHANGE_API_KEY` — ключ от сервиса [exchangerate-api.com](https://www.exchangerate-api.com/)
-- `SUPABASE_URL` / `SUPABASE_KEY` — данные проекта [Supabase](https://supabase.com/) (пока клиент создаётся, но не используется — задел на будущую интеграцию)
+- `SUPABASE_URL` / `SUPABASE_KEY` — данные проекта [Supabase](https://supabase.com/), используются для хранения переписки (`chats`/`messages`, см. [`modules/bot.md`](./modules/bot.md))
 
 Без них приложение не запустится — это специально (см. `src/core/config.ts`).
+
+Дополнительно (необязательно, но нужно для записи в `chats`/`messages`):
+
+- `SUPABASE_SERVICE_ROLE_KEY` — service-role ключ проекта. Таблицы `chats`/`messages`
+  защищены RLS без публичных policy, поэтому обычный (`SUPABASE_KEY`, publishable/anon)
+  ключ не может в них писать — заблокирует RLS. Если переменная не задана, приложение
+  всё равно стартует, но запись переписки будет падать с ошибкой RLS.
 
 ## Технологии
 
@@ -37,7 +44,7 @@ pnpm build && pnpm start   # прод-сборка
 | TypeScript | Язык проекта, без DI-фреймворка — вся сборка зависимостей происходит вручную (см. `*.module.ts`-фабрики) |
 | [grammY](https://grammy.dev/) | Библиотека для работы с Telegram Bot API |
 | [Fastify](https://fastify.dev/) | HTTP-сервер — нужен для health-check, HTTP-эндпоинта студента и вебхука Telegram |
-| [Supabase](https://supabase.com/) | Клиент подготовлен (`@supabase/supabase-js`) для последующей интеграции хранения данных |
+| [Supabase](https://supabase.com/) | Postgres-хранилище переписки (`chats`/`messages`) и состояния бота (режим чата, предпочтения валют — только на edge-функциях) |
 | [Frankfurter API](https://frankfurter.dev/) / [ExchangeRate-API](https://www.exchangerate-api.com/) | Внешние источники курсов валют |
 
 ## Карта каталогов

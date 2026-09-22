@@ -92,12 +92,13 @@ Use case ничего не знает про `ExchangeRateRouterAdapter` — о�
 ```
 main.ts (composition root)
 ├── loadConfig()                — читает и валидирует .env
-├── createSupabaseClient(config) — готовит клиент Supabase (задел на будущее)
+├── createSupabaseClient(config) — клиент Supabase (сервис-роль, если задана)
 ├── new InMemoryUserModeAdapter() — общий на все модули, создаётся один раз
 ├── createHttpServer()            — поднимает Fastify, регистрирует health-роуты
 ├── createCurrencyModule({config, userMode})
 ├── createStudentModule()          — плюс регистрирует свой HTTP-роут на общий Fastify-инстанс
-└── createBotModule({config, userMode, currency, student, httpServer})
+└── createBotModule({config, userMode, currency, student, httpServer, supabaseClient})
+    — плюс регистрирует GET /chats и GET /messages на тот же Fastify-инстанс
 ```
 
 Такой файл называют **composition root** — единственное место в приложении, где реальные классы связываются друг с другом. Всё, что лежит "ниже" (use-case'ы, адаптеры, контроллеры), знает только про интерфейсы и ничего не знает про то, как их создали и склеили.
@@ -113,7 +114,8 @@ main.ts (composition root)
 
 Необязательные:
 
-- `WEBHOOK_URL` — если задан, бот работает через вебхук вместо long polling. В этом случае `WEBHOOK_SECRET` становится обязательным (проверяется сразу в `loadConfig()`, а не в момент настройки вебхука).
+- `WEBHOOK_URL` — если задан, бот работает через вебхук вместо long polling. В этом случае `WEBHOOK_SECRET` становится обязательным (проверяется сразу в `loadConfig()`, а не в момент настройки вебхука). **Осторожно**: если в проде уже работает вебхук на Supabase Edge Functions, локально этот параметр лучше не задавать — иначе локальный запуск перерегистрирует вебхук на себя (Telegram поддерживает только один активный URL) и боевой бот замолчит.
+- `SUPABASE_SERVICE_ROLE_KEY` — service-role ключ Supabase. Без него `SupabaseUpdateLoggerAdapter` (запись переписки в `chats`/`messages`) не сможет писать — эти таблицы под RLS, а обычный `SUPABASE_KEY` (publishable/anon) в них не пускает.
 - `POLL_INTERVAL_MS` — как часто опрашивать Telegram при polling (по умолчанию 3000 мс)
 - `PORT` — порт HTTP-сервера (по умолчанию 3000)
 

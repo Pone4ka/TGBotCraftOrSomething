@@ -8,11 +8,11 @@
 
 `bootstrap()`:
 1. `loadConfig()` — читает и валидирует `.env`.
-2. `createSupabaseClient(config)` — готовит клиент Supabase (задел на будущее, пока никуда не передаётся дальше).
+2. `createSupabaseClient(config)` — клиент Supabase, передаётся в `createBotModule` (используется для чтения/записи `chats`/`messages`, см. [`bot.md`](./bot.md)).
 3. `new InMemoryUserModeAdapter()` — общий на все модули экземпляр, создаётся один раз.
 4. `createHttpServer()` — поднимает Fastify, сразу регистрирует health-роуты.
 5. `createCurrencyModule(...)`, `createStudentModule(...)` — собирают модули; `student` дополнительно регистрирует свой HTTP-роут на общий Fastify-инстанс.
-6. `createBotModule(...)` — собирает бота, отдаёт `{ start(), stop() }`.
+6. `createBotModule(...)` — собирает бота (в том числе HTTP-роуты `GET /chats`/`GET /messages`), отдаёт `{ start(), stop() }`.
 7. `await bot.start()` — регистрирует Telegram-обработчики и (если задан `WEBHOOK_URL`) монтирует вебхук-роут на Fastify **до** того, как сервер начнёт слушать порт.
 8. `await httpServer.listen(...)` — сервер начинает слушать `0.0.0.0:PORT` (важно для контейнеров/облака).
 9. Подписка на `SIGINT`/`SIGTERM` — корректно останавливает polling (`bot.stop()`) и Fastify (`httpServer.close()`) перед выходом.
@@ -23,7 +23,7 @@
 
 **Функция `loadConfig(): Config`** — вызывается один раз при старте приложения. Читает `process.env` и возвращает типизированный объект. Если обязательная переменная не задана — бросает `Error`, и приложение вообще не стартует. Это защита от ситуации "бот запустился, а через 5 минут упал, потому что забыли токен".
 
-Обязательные: `BOT_TOKEN`, `EXCHANGE_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`. `WEBHOOK_SECRET` обязателен только если задан `WEBHOOK_URL` (проверяется здесь же, при старте, а не в момент настройки вебхука).
+Обязательные: `BOT_TOKEN`, `EXCHANGE_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`. `WEBHOOK_SECRET` обязателен только если задан `WEBHOOK_URL` (проверяется здесь же, при старте, а не в момент настройки вебхука). Необязательный `SUPABASE_SERVICE_ROLE_KEY`, если задан, используется вместо `SUPABASE_KEY` при создании клиента (`supabase-client.factory.ts`) — нужен, чтобы писать в защищённые RLS таблицы `chats`/`messages` (обычный `SUPABASE_KEY` — publishable/anon-ключ, RLS его не пустит).
 
 ## `core/domain/domain-exception.ts`
 
@@ -57,7 +57,7 @@
 
 ## `core/supabase/supabase-client.factory.ts`
 
-**Функция `createSupabaseClient(config): SupabaseClient`** — создаёт клиент `@supabase/supabase-js` из `SUPABASE_URL`/`SUPABASE_KEY`. Сейчас вызывается в `main.ts`, но результат никуда не передаётся дальше — это подготовка инфраструктуры для последующей интеграции (хранение состояния бота, аутентификация и т.д.), а не рабочая функциональность.
+**Функция `createSupabaseClient(config): SupabaseClient`** — создаёт клиент `@supabase/supabase-js` из `SUPABASE_URL` и `config.supabaseServiceRoleKey ?? config.supabaseKey` (то есть предпочитает service-role ключ, если он задан, — см. `SUPABASE_SERVICE_ROLE_KEY` выше). Результат передаётся в `createBotModule` и используется `SupabaseUpdateLoggerAdapter`/`SupabaseChatHistoryQueryAdapter` для записи и чтения переписки (см. [`bot.md`](./bot.md)).
 
 ## `core/user-mode/` — в каком режиме находится чат
 

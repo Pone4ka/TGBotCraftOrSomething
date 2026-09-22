@@ -1,14 +1,17 @@
 # `src/modules/bot` — ядро бота
 
-Этот модуль отвечает за: подключение к Telegram, запуск (polling/webhook), главное меню и переключение между режимами, а также базовое логирование входящих сообщений/команд. Именно он "дирижирует" остальными модулями (`currency`, `student`).
+Этот модуль отвечает за: подключение к Telegram, запуск (polling/webhook), главное меню и переключение между режимами, а также персистентность переписки (`chats`/`messages` в Postgres) — и логирование входящих сообщений/команд, и запись ответов бота, и чтение истории через HTTP. Именно он "дирижирует" остальными модулями (`currency`, `student`).
 
 ## `bot.module.ts`
 
 **`createBotModule(deps)`** — фабрика, которая собирает всё воедино вручную (никакого DI-контейнера).
 
-Принимает `{ config, userMode, currency, student, httpServer }` (уже собранные модули `currency`/`student`, общий `UserModePort`, конфиг и Fastify-инстанс). Внутри:
+Принимает `{ config, userMode, currency, student, httpServer, supabaseClient }` (уже собранные модули `currency`/`student`, общий `UserModePort`, конфиг, Fastify-инстанс и клиент Supabase — см. [`core.md`](./core.md)). Внутри:
 - создаёт объект бота grammY (`createBot(config)`);
-- создаёт логгер апдейтов, три use-case'а, три собственных контроллера (`Menu`, `Debug`, `Telegram`);
+- создаёт `SupabaseUpdateLoggerAdapter(supabaseClient)` — логгер апдейтов, теперь пишущий в Postgres, а не в консоль;
+- регистрирует на `bot.api.config.use(...)` API-трансформер, который перехватывает каждый исходящий `sendMessage` и передаёт его текст в `updateLogger.logReply(...)` — независимо от того, какой контроллер отвечает (см. раздел про захват ответов ниже);
+- создаёт use-case'ы (`ReceiveMessage`, `ReceiveCommand`, `SwitchMode`) и собственные контроллеры (`Menu`, `Debug`, `Telegram`);
+- создаёт `SupabaseChatHistoryQueryAdapter(supabaseClient)` и регистрирует HTTP-роуты `GET /chats`/`GET /messages` (`registerChatHistoryRoutes`) прямо на переданный `httpServer`;
 - собирает `BotLifecycleService`, передавая ему контроллеры этого модуля и контроллеры `currency`/`student`, полученные через `deps`.
 
 Возвращает наружу только `{ start(), stop() }` — остальным частям приложения (`main.ts`) не нужно знать про внутренние детали.
@@ -38,10 +41,11 @@
 `start()` делает по порядку:
 1. Регистрирует обработчики всех контроллеров в определённом порядке (порядок важен для grammY — это как middleware в Express):
    - `DebugBotController` — первым, чтобы скрытая команда `/debug` работала всегда, независимо от режима чата;
-   - `MenuBotController` — вторым, чтобы команды переключения режима (`/start`, `/currency`, кнопки меню) перехватывались раньше, чем логика конкретных модулей;
+   - `TelegramBotController` — **вторым**, до всего, что может ответить пользователю. Это специально: он пишет входящее сообщение в `messages` (Postgres) *до* того, как какой-либо контроллер вызовет `ctx.reply(...)`. API-трансформер, который ловит исходящий ответ (`bot.module.ts`), ищет "последнее сообщение этого чата без ответа" — если бы логирование стояло в конце цепочки (как было раньше), к моменту ответа строка сообщения ещё не существовала бы, и ответ было бы не к чему привязать;
+   - `MenuBotController` — чтобы команды переключения режима (`/start`, `/currency`, кнопки меню) перехватывались раньше, чем логика конкретных модулей;
    - `CurrencySourceBotController`, `CurrencyBotController` — модуль-фича `currency`;
    - `StudentBotController` — модуль-фича `student`;
-   - `TelegramBotController` — последним, он же общий логгер всех сообщений/команд.
+   - `MenuBotController.registerFallback` — последним, ловит любой текст, не распознанный выше.
 2. Вызывает `bot.init()` — grammY подгружает информацию о самом боте (username и т.д.) от Telegram.
 3. Регистрирует список команд бота через `setMyCommands` — это то, что видит пользователь при нажатии на "/" в Telegram (кнопка со списком команд). Обратите внимание: `/debug` туда намеренно **не входит** — она скрытая.
 4. Если в конфиге задан `webhookUrl` — настраивает вебхук (`setUpWebhook`), иначе — запускает polling (`setUpPolling`).
@@ -84,40 +88,93 @@
 
 ### `telegram-bot.controller.ts`
 
-**`TelegramBotController`** — самый общий обработчик, стоит в конце цепочки. Ничего не решает бизнес-логически, просто логирует:
+**`TelegramBotController`** — самый общий обработчик входящих апдейтов (не путать с "последним в цепочке" — см. про порядок регистрации выше). Ничего не решает бизнес-логически, просто логирует и **всегда** вызывает `next()`, чтобы дальше по цепочке отработали `Menu`/`Currency`/`Student`:
 
 - `message:entities:bot_command` (когда в сообщении Telegram распознал команду) → `ReceiveCommandUseCase.execute(...)`.
-- `message` (вообще любое сообщение) → `ReceiveMessageUseCase.execute(...)`.
+- `message` (вообще любое сообщение) → `ReceiveMessageUseCase.execute(...)`, передавая также `firstName`/`lastName` из `ctx.from` (нужны для `chats.first_name`/`last_name`).
 
 Метод `handle(run)` — обёртка: ловит исключения. Если поймано `DomainException` — просто логирует код ошибки в консоль и не роняет процесс (это ожидаемая, "мягкая" ошибка вроде "текст сообщения пустой"). Если исключение другого типа — перебрасывает дальше (значит, это баг, который не должен молча проглатываться).
 
-## `adapters/out/console-update-logger.adapter.ts`
+## `adapters/out/` — куда уходит лог и откуда читается история
 
-**`ConsoleUpdateLoggerAdapter`** — реализация порта `UpdateLoggerPort` (см. ниже), которая просто печатает входящие сообщения/команды в консоль (`console.log`) вместе с сырым JSON апдейта от Telegram. В реальном продакшене этот адаптер можно было бы заменить, например, на запись в файл или в систему аналитики — код use-case'ов не изменится.
+### `supabase-update-logger.adapter.ts`
 
-## `application/ports/update-logger.port.ts`
+**`SupabaseUpdateLoggerAdapter`** — основная реализация `UpdateLoggerPort`, пишет в Postgres (таблицы `chats`/`messages`, см. `supabase/migrations/..._chat_history.sql`):
 
-**`UpdateLoggerPort`** — интерфейс: `logMessage(message)`, `logCommand(command)`.
+- `logMessage(message)` — `upsert` в `chats` (`chat_id`, `first_name`, `last_name`) и `insert` в `messages` (`chat_id`, `text`). Триггер `touch_chat_last_message` в БД сам обновляет `chats.last_message_at`.
+- `logCommand(command)` — команды (`/start`, `/currency`, ...) в `messages` не пишутся, это управляющий поток, а не контент переписки; просто печатает в консоль.
+- `logReply(chatId, text)` — находит самое свежее сообщение этого чата, у которого ещё нет ответа (`reply_text is null`), и проставляет ему `reply_text`/`replied_at`. Если такого сообщения нет (например, ответ — реакция на нажатие кнопки, а не на текстовое сообщение) — молча ничего не делает.
+
+Вызывается не только из use-case'ов `Receive*`, но и напрямую из API-трансформера в `bot.module.ts` (см. ниже) — именно так ответы бота попадают в базу независимо от того, какой контроллер их отправил.
+
+Не входит в `SHARED_FILES` (`scripts/generate-edge-shared.mjs`), потому что напрямую использует `@supabase/supabase-js`, чей импорт различается между Node и Deno — у edge-функции свой файл-двойник, см. [`edge-functions.md`](./edge-functions.md).
+
+### `console-update-logger.adapter.ts`
+
+**`ConsoleUpdateLoggerAdapter`** — альтернативная реализация `UpdateLoggerPort`, просто печатает в консоль (`console.log`) вместо записи в БД. Сейчас нигде не подключена (раньше была основной), оставлена как более простой пример реализации порта и как быстрый способ временно отключить персистентность при отладке.
+
+### `supabase-chat-history-query.adapter.ts`
+
+**`SupabaseChatHistoryQueryAdapter`** — реализация `ChatHistoryQueryPort` (см. ниже), читает `chats`/`messages` из Postgres для HTTP-роутов истории переписки. Как и логгер, не входит в `SHARED_FILES` (Postgres-клиент различается между рантаймами).
+
+## `adapters/in/chat-history.controller.ts`
+
+**`registerChatHistoryRoutes(app, listChats, listMessages)`** — монтирует на Fastify-инстанс:
+
+- `GET /chats` → `ListChatsUseCase.execute()` — все чаты, новые сверху (`ORDER BY last_message_at DESC`).
+- `GET /messages` → `ListMessagesUseCase.execute()` — все сообщения, новые сверху (`ORDER BY created_at DESC`), с полями `replyText`/`repliedAt`, если бот уже ответил.
+
+Не входит в `SHARED_FILES` — Fastify-специфичная обвязка; у edge-функций свои точки входа (`functions/chats/index.ts`, `functions/messages/index.ts`), см. [`edge-functions.md`](./edge-functions.md).
+
+## `application/ports/`
+
+### `update-logger.port.ts`
+
+**`UpdateLoggerPort`** — интерфейс: `logMessage(message)`, `logCommand(command)`, `logReply(chatId, text)`. Все три метода асинхронные (`Promise<void>`) — по той же причине, что и `UserModePort` (см. [`core.md`](./core.md)): один и тот же код порта работает что под Node (`SupabaseUpdateLoggerAdapter` реально пишет в БД), что под Deno.
+
+### `chat-history-query.port.ts`
+
+**`ChatHistoryQueryPort`** — интерфейс: `listChats(): Promise<ChatSummary[]>`, `listMessages(): Promise<StoredMessage[]>`. Только Postgres-реализация — in-memory аналога нет, история переписки не существует, пока не сохранена.
 
 ## `application/use-cases/` — сценарии использования
 
 ### `receive-message.use-case.ts`
 
-**`ReceiveMessageUseCase.execute(input)`** — принимает `{ chatId, authorId, text, raw }`, создаёт доменную сущность `ChatMessage.create(input)` (это может бросить `EmptyMessageTextException`, если текст пустой) и передаёт её логгеру.
+**`ReceiveMessageUseCase.execute(input)`** — принимает `{ chatId, authorId, text, raw, firstName?, lastName? }`, создаёт доменную сущность `ChatMessage.create(input)` (это может бросить `EmptyMessageTextException`, если текст пустой) и `await` передаёт её логгеру.
 
 ### `receive-command.use-case.ts`
 
-**`ReceiveCommandUseCase.execute(input)`** — принимает `{ chatId, text, raw }`, создаёт сущность `BotCommand.create(...)` (может бросить `InvalidCommandFormatException`, если текст не начинается с `/`) и логирует её.
+**`ReceiveCommandUseCase.execute(input)`** — принимает `{ chatId, text, raw }`, создаёт сущность `BotCommand.create(...)` (может бросить `InvalidCommandFormatException`, если текст не начинается с `/`) и `await` логирует её.
 
 ### `switch-mode.use-case.ts`
 
 **`SwitchModeUseCase.execute(input)`** — принимает `{ chatId, mode }` и просто вызывает `userMode.setMode(chatId, mode)`. Самый простой use-case в проекте — хорошая иллюстрация того, что use-case не обязан быть сложным, важна сама точка входа.
 
+### `list-chats.use-case.ts` / `list-messages.use-case.ts`
+
+**`ListChatsUseCase.execute()`** / **`ListMessagesUseCase.execute()`** — тонкие обёртки над `ChatHistoryQueryPort.listChats()`/`listMessages()`, по образцу `GetStudentInfoUseCase` (см. [`student`-модуль]): вся логика — в адаптере, use-case существует, чтобы у контроллера была единая точка входа, а не прямая зависимость от Postgres-адаптера.
+
+## Захват ответов бота (`bot.module.ts`)
+
+Ответы бота (`ctx.reply(...)`) отправляются из разных контроллеров (`Menu`, `Currency`, `Student`) — каждый из них ничего не знает про персистентность. Вместо того чтобы протаскивать логгер в каждый контроллер, `bot.module.ts` подписывается на **grammY API-трансформер**:
+
+```typescript
+bot.api.config.use(async (prev, method, payload, signal) => {
+  const result = await prev(method, payload, signal);
+  if (method === "sendMessage" && "chat_id" in payload && "text" in payload) {
+    await updateLogger.logReply(Number(payload.chat_id), String(payload.text));
+  }
+  return result;
+});
+```
+
+Это перехватывает **любой** вызов `bot.api.sendMessage` (а значит и `ctx.reply`) независимо от того, откуда он вызван, и передаёт текст в `logReply` — см. выше. Важно: перехват сработает даже если сам вызов к Telegram API завершится ошибкой (`prev(...)` в grammY возвращает "сырой" ответ раньше, чем на его основе бросается `GrammyError`), поэтому ответ логируется независимо от успешности доставки.
+
 ## `domain/` — сущности и их правила
 
 ### `chat-message.entity.ts`
 
-**Класс `ChatMessage`** — представляет валидное сообщение в чате. У класса **приватный конструктор** и статический фабричный метод `create(props)` — это распространённый паттерн: нельзя создать объект `ChatMessage`, минуя проверку правил. `create` проверяет, что `text.trim().length !== 0`, иначе бросает `EmptyMessageTextException`.
+**Класс `ChatMessage`** — представляет валидное сообщение в чате. У класса **приватный конструктор** и статический фабричный метод `create(props)` — это распространённый паттерн: нельзя создать объект `ChatMessage`, минуя проверку правил. `create` проверяет, что `text.trim().length !== 0`, иначе бросает `EmptyMessageTextException`. Помимо `chatId`/`authorId`/`text`/`raw`, несёт опциональные `firstName`/`lastName` (имя отправителя из Telegram) — используются `SupabaseUpdateLoggerAdapter` для `chats.first_name`/`last_name`.
 
 ### `bot-command.entity.ts`
 

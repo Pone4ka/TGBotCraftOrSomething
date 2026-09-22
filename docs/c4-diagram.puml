@@ -48,6 +48,7 @@ rectangle "Telegram User\n<<Person>>\n--\nSends commands and text\nmessages to t
 rectangle "Telegram Bot API\n<<External System>>\n--\nDelivers/receives chat\nupdates (long polling\nor webhook)" <<External>> as TelegramApi
 rectangle "Frankfurter API\n<<External System>>\n--\nFree ECB reference\nexchange rates" <<External>> as Frankfurter
 rectangle "ExchangeRate-API\n<<External System>>\n--\nKeyed exchange-rate\nprovider (paid tier)" <<External>> as ExchangeRateApi
+rectangle "Supabase Postgres\n<<External System>>\n--\nchats/messages tables\n(RLS, service-role only)" <<External>> as Supabase
 
 ' ---------- Container boundary ----------
 package "Telegram Bot Backend  [Container: Node.js / TypeScript / Fastify]" <<Boundary>> as Backend {
@@ -57,10 +58,12 @@ package "Telegram Bot Backend  [Container: Node.js / TypeScript / Fastify]" <<Bo
   rectangle "BotLifecycleService\n<<Component>>\n--\nWires up handlers,\nstarts polling or\nregisters webhook" <<Component>> as Lifecycle
 
   package "Bot Module" <<Boundary>> {
-    rectangle "TelegramBotController\n<<Component>>\n--\nGeneric message/\ncommand intake" <<Component>> as TelegramCtrl
+    rectangle "TelegramBotController\n<<Component>>\n--\nGeneric message/\ncommand intake\n(registered early,\nbefore any reply)" <<Component>> as TelegramCtrl
     rectangle "MenuBotController\n<<Component>>\n--\n/start, mode menu\n& switching" <<Component>> as MenuCtrl
     rectangle "DebugBotController\n<<Component>>\n--\nHidden debug command" <<Component>> as DebugCtrl
     rectangle "Receive/Switch\nUse Cases\n<<Component>>" <<Component>> as BotUseCases
+    rectangle "SupabaseUpdateLoggerAdapter\n<<Component>>\n--\nPersists messages,\ncaptures replies via\nsendMessage API\ntransformer" <<Component>> as UpdateLogger
+    rectangle "List Chats/Messages\nUse Cases +\nSupabaseChatHistoryQueryAdapter\n<<Component>>\n--\nGET /chats, GET /messages" <<Component>> as ChatHistory
   }
 
   package "Currency Module" <<Boundary>> {
@@ -88,6 +91,11 @@ Lifecycle --> DebugCtrl : registers handlers
 Lifecycle --> CurrencyCtrl : registers handlers
 
 TelegramCtrl --> BotUseCases : invokes
+BotUseCases --> UpdateLogger : "logMessage/logCommand"
+UpdateLogger --> Supabase : "upsert chats,\ninsert messages\n[HTTPS/PostgREST]"
+Lifecycle --> UpdateLogger : "sendMessage API\ntransformer\ncalls logReply"
+Http --> ChatHistory : "GET /chats\nGET /messages"
+ChatHistory --> Supabase : "select, ORDER BY\n...DESC\n[HTTPS/PostgREST]"
 MenuCtrl --> BotUseCases : invokes
 MenuCtrl --> UserMode : "reads/switches\nchat mode"
 
