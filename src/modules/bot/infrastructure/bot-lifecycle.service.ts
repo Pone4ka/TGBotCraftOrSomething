@@ -32,6 +32,10 @@ export class BotLifecycleService {
     // Debug goes first: a hidden command that must work no matter what mode/state the
     // chat is in, before any of the state-dependent controllers below get a look at it.
     this.deps.debugController.registerHandlers(bot);
+    // Then the raw update logger, before anything that might reply: it persists the
+    // incoming message so the reply-capture API transformer (registered in bot.module.ts)
+    // has a row to attach the eventual reply to.
+    this.deps.controller.registerHandlers(bot);
     // Menu goes first so it can fully own mode-switch commands/buttons before the
     // module controllers below (which call next() and hand off to the loggers) see them.
     this.deps.menuController.registerHandlers(bot);
@@ -42,7 +46,6 @@ export class BotLifecycleService {
     // Registering it earlier would intercept home-screen buttons (e.g. "🎓 Студент")
     // with the generic "choose a mode" prompt before the real handler got a chance to run.
     this.deps.menuController.registerFallback(bot);
-    this.deps.controller.registerHandlers(bot);
     await bot.init();
 
     await bot.api.setMyCommands([

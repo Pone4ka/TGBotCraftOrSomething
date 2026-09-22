@@ -6,13 +6,17 @@ import type { ChatMessage } from "../../domain/chat-message.entity.ts";
 import type { BotCommand } from "../../domain/bot-command.entity.ts";
 
 export class ConsoleUpdateLoggerAdapter implements UpdateLoggerPort {
-  logMessage(message: ChatMessage): void {
+  async logMessage(message: ChatMessage): Promise<void> {
     console.log("[bot] message:", message.text);
     console.log(JSON.stringify(message.raw, null, 2));
   }
 
-  logCommand(command: BotCommand): void {
+  async logCommand(command: BotCommand): Promise<void> {
     console.log("[bot] command:", `/${command.name}`, command.args);
     console.log(JSON.stringify(command.raw, null, 2));
+  }
+
+  async logReply(chatId: number, text: string): Promise<void> {
+    console.log("[bot] reply:", chatId, text);
   }
 }

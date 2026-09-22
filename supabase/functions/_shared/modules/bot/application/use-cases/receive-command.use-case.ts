@@ -13,8 +13,8 @@ export interface ReceiveCommandInput {
 export class ReceiveCommandUseCase {
   constructor(private readonly logger: UpdateLoggerPort) {}
 
-  execute(input: ReceiveCommandInput): void {
+  async execute(input: ReceiveCommandInput): Promise<void> {
     const command = BotCommand.create(input.chatId, input.text, input.raw);
-    this.logger.logCommand(command);
+    await this.logger.logCommand(command);
   }
 }

@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.student]
 verify_jwt = false
+
+[functions.chats]
+verify_jwt = false
+
+[functions.messages]
+verify_jwt = false

@@ -6,7 +6,7 @@ import { createStudentModule } from "../_shared/modules/student/student.module.t
 import { DebugBotController } from "../_shared/modules/bot/adapters/in/debug-bot.controller.ts";
 import { MenuBotController } from "../_shared/modules/bot/adapters/in/menu-bot.controller.ts";
 import { TelegramBotController } from "../_shared/modules/bot/adapters/in/telegram-bot.controller.ts";
-import { ConsoleUpdateLoggerAdapter } from "../_shared/modules/bot/adapters/out/console-update-logger.adapter.ts";
+import { SupabaseUpdateLoggerAdapter } from "../_shared/modules/bot/adapters/out/supabase-update-logger.adapter.ts";
 import { ReceiveMessageUseCase } from "../_shared/modules/bot/application/use-cases/receive-message.use-case.ts";
 import { ReceiveCommandUseCase } from "../_shared/modules/bot/application/use-cases/receive-command.use-case.ts";
 import { SwitchModeUseCase } from "../_shared/modules/bot/application/use-cases/switch-mode.use-case.ts";
@@ -29,10 +29,21 @@ async function buildHandler(): Promise<UpdateHandler> {
   const currency = createCurrencyModule({ exchangeApiKey: config.exchangeApiKey, userMode });
   const student = createStudentModule();
 
-  const updateLogger = new ConsoleUpdateLoggerAdapter();
+  const updateLogger = new SupabaseUpdateLoggerAdapter();
   const receiveMessage = new ReceiveMessageUseCase(updateLogger);
   const receiveCommand = new ReceiveCommandUseCase(updateLogger);
   const switchMode = new SwitchModeUseCase(userMode);
+
+  // Captures every outgoing message regardless of which controller sent it (menu, currency,
+  // student, ...) and attaches it as the reply to the most recent unanswered message for
+  // that chat — see SupabaseUpdateLoggerAdapter#logReply.
+  bot.api.config.use(async (prev, method, payload, signal) => {
+    const result = await prev(method, payload, signal);
+    if (method === "sendMessage" && "chat_id" in payload && "text" in payload) {
+      await updateLogger.logReply(Number(payload.chat_id), String(payload.text));
+    }
+    return result;
+  });
 
   const debugController = new DebugBotController(userMode, currency.sourcePreference, currency.targetCurrencyPreference);
   const menuController = new MenuBotController(switchMode, userMode);
@@ -41,6 +52,10 @@ async function buildHandler(): Promise<UpdateHandler> {
   // Registration order matters: debug and menu must see every update before the
   // mode-dependent module controllers below, exactly like BotLifecycleService.start().
   debugController.registerHandlers(bot);
+  // Then the raw update logger, before anything that might reply: it persists the
+  // incoming message so the reply-capture API transformer above has a row to attach the
+  // eventual reply to.
+  telegramController.registerHandlers(bot);
   menuController.registerHandlers(bot);
   currency.currencySourceController.registerHandlers(bot);
   currency.currencyController.registerHandlers(bot);
@@ -51,7 +66,6 @@ async function buildHandler(): Promise<UpdateHandler> {
   // Registering it earlier would intercept home-screen buttons (e.g. "🎓 Студент") with
   // the generic "choose a mode" prompt before the real handler got a chance to run.
   menuController.registerFallback(bot);
-  telegramController.registerHandlers(bot);
 
   await bot.init();
 

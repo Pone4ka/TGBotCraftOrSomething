@@ -9,8 +9,7 @@ import { createStudentModule } from "./modules/student/student.module";
 async function bootstrap(): Promise<void> {
   const config = loadConfig();
 
-  // Prepared for upcoming Supabase-backed persistence; not consumed yet.
-  createSupabaseClient(config);
+  const supabaseClient = createSupabaseClient(config);
 
   const userMode = new InMemoryUserModeAdapter();
 
@@ -20,7 +19,7 @@ async function bootstrap(): Promise<void> {
   const student = createStudentModule();
   student.registerHttpRoutes(httpServer);
 
-  const bot = createBotModule({ config, userMode, currency, student, httpServer });
+  const bot = createBotModule({ config, userMode, currency, student, httpServer, supabaseClient });
 
   // Route registration (including the optional webhook route) must happen before the
   // HTTP server starts listening.

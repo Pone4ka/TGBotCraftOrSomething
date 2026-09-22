@@ -9,13 +9,15 @@ export interface ReceiveMessageInput {
   authorId: number;
   text: string;
   raw: unknown;
+  firstName?: string;
+  lastName?: string;
 }
 
 export class ReceiveMessageUseCase {
   constructor(private readonly logger: UpdateLoggerPort) {}
 
-  execute(input: ReceiveMessageInput): void {
+  async execute(input: ReceiveMessageInput): Promise<void> {
     const message = ChatMessage.create(input);
-    this.logger.logMessage(message);
+    await this.logger.logMessage(message);
   }
 }

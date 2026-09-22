@@ -5,6 +5,8 @@ export interface ChatMessageProps {
   authorId: number;
   text: string;
   raw: unknown;
+  firstName?: string;
+  lastName?: string;
 }
 
 export class ChatMessage {
@@ -12,12 +14,16 @@ export class ChatMessage {
   readonly authorId: number;
   readonly text: string;
   readonly raw: unknown;
+  readonly firstName?: string;
+  readonly lastName?: string;
 
   private constructor(props: ChatMessageProps) {
     this.chatId = props.chatId;
     this.authorId = props.authorId;
     this.text = props.text;
     this.raw = props.raw;
+    this.firstName = props.firstName;
+    this.lastName = props.lastName;
   }
 
   static create(props: ChatMessageProps): ChatMessage {

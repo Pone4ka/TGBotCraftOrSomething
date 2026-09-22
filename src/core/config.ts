@@ -3,6 +3,7 @@ export interface Config {
   readonly exchangeApiKey: string;
   readonly supabaseUrl: string;
   readonly supabaseKey: string;
+  readonly supabaseServiceRoleKey?: string;
   readonly webhookUrl?: string;
   readonly webhookSecret?: string;
   readonly pollIntervalMs: number;
@@ -24,7 +25,12 @@ export function loadConfig(): Config {
     botToken: requireEnv("BOT_TOKEN"),
     exchangeApiKey: requireEnv("EXCHANGE_API_KEY"),
     supabaseUrl: requireEnv("SUPABASE_URL"),
+    // SUPABASE_KEY is typically the publishable/anon key, which RLS-protected tables (see
+    // supabase/migrations) reject writes from. SUPABASE_SERVICE_ROLE_KEY, when set, bypasses
+    // RLS the same way it's auto-injected for the Supabase Edge Functions runtime (see
+    // supabase/functions/_shared/core/supabase/supabase-client.ts).
     supabaseKey: requireEnv("SUPABASE_KEY"),
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     webhookUrl,
     // Only required when webhooks are actually enabled; fail fast at startup
     // rather than the first time setUpWebhook() runs.
