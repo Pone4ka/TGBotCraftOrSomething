@@ -66,7 +66,8 @@ supabase/
 ├── config.toml
 ├── migrations/
 │   ├── ..._bot_state_tables.sql   — таблицы для состояния чата (замена in-memory адаптеров)
-│   └── ..._chat_history.sql       — таблицы chats/messages (переписка + ответы бота)
+│   ├── ..._chat_history.sql       — таблицы chats/messages (переписка + ответы бота)
+│   └── ..._operator_messages.sql  — сообщения оператора (text = null) + публикация chats/messages в Supabase Realtime
 └── functions/
     ├── _shared/                    — СГЕНЕРИРОВАНО из src/, см. выше; структура папок
     │   │                              зеркалит src/ 1:1 (core/, modules/{bot,currency,student}/)
@@ -103,8 +104,8 @@ supabase/
 | `bot` | Telegram webhook (POST) — меню, `/debug`, диспетчеризация в currency/student, запись переписки в `chats`/`messages` | `functions/bot/index.ts` |
 | `currency` | HTTP POST `{ text, chatId }` напрямую; плюс обрабатывается внутри `bot`-вебхука | `functions/currency/index.ts` |
 | `student` | **1)** HTTP GET → JSON `{ message, studentId }`. **2)** Telegram-бот — кнопка «🎓 Студент» обрабатывается в `functions/bot/index.ts` через тот же `GetStudentInfoUseCase` | `functions/student/index.ts` |
-| `chats` | HTTP GET → JSON-массив всех чатов, `ORDER BY last_message_at DESC` | `functions/chats/index.ts` |
-| `messages` | HTTP GET → JSON-массив всех сообщений (с `replyText`/`repliedAt`), `ORDER BY created_at DESC` | `functions/messages/index.ts` |
+| `chats` | HTTP GET → JSON-массив всех чатов (с превью последнего сообщения), `ORDER BY last_message_at DESC` | `functions/chats/index.ts` |
+| `messages` | HTTP GET → JSON-массив всех сообщений (с `replyText`/`repliedAt`), `ORDER BY created_at DESC`; `?chatId=…` — только один чат | `functions/messages/index.ts` |
 
 Telegram позволяет зарегистрировать только один webhook URL на бота, поэтому реальный
 Telegram-трафик всегда приходит в `bot`. Модуль `student` тем не менее задуман с двумя

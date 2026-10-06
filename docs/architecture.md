@@ -98,7 +98,8 @@ main.ts (composition root)
 ├── createCurrencyModule({config, userMode})
 ├── createStudentModule()          — плюс регистрирует свой HTTP-роут на общий Fastify-инстанс
 └── createBotModule({config, userMode, currency, student, httpServer, supabaseClient})
-    — плюс регистрирует GET /chats и GET /messages на тот же Fastify-инстанс
+    — плюс регистрирует GET /chats, GET /messages, POST /chats/:chatId/messages,
+      GET /events (SSE) и панель оператора /operator на тот же Fastify-инстанс
 ```
 
 Такой файл называют **composition root** — единственное место в приложении, где реальные классы связываются друг с другом. Всё, что лежит "ниже" (use-case'ы, адаптеры, контроллеры), знает только про интерфейсы и ничего не знает про то, как их создали и склеили.
@@ -116,6 +117,7 @@ main.ts (composition root)
 
 - `WEBHOOK_URL` — если задан, бот работает через вебхук вместо long polling. В этом случае `WEBHOOK_SECRET` становится обязательным (проверяется сразу в `loadConfig()`, а не в момент настройки вебхука). **Осторожно**: если в проде уже работает вебхук на Supabase Edge Functions, локально этот параметр лучше не задавать — иначе локальный запуск перерегистрирует вебхук на себя (Telegram поддерживает только один активный URL) и боевой бот замолчит.
 - `SUPABASE_SERVICE_ROLE_KEY` — service-role ключ Supabase. Без него `SupabaseUpdateLoggerAdapter` (запись переписки в `chats`/`messages`) не сможет писать — эти таблицы под RLS, а обычный `SUPABASE_KEY` (publishable/anon) в них не пускает.
+- `BOT_RECEIVE_UPDATES` — `false`, чтобы процесс вообще не получал апдейты Telegram (ни вебхук, ни polling) и не трогал `setMyCommands`. Нужно, когда боевой бот работает на edge-функции `bot`, а локально запускается только панель оператора: polling начинается с `deleteWebhook` и выключил бы боевого бота. Отправка сообщений из панели при этом работает.
 - `POLL_INTERVAL_MS` — как часто опрашивать Telegram при polling (по умолчанию 3000 мс)
 - `PORT` — порт HTTP-сервера (по умолчанию 3000)
 

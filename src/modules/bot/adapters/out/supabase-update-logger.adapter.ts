@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { StoredMessage } from "../../application/ports/chat-history-query.port";
+import type { OutgoingMessageStorePort } from "../../application/ports/outgoing-message-store.port";
 import type { UpdateLoggerPort } from "../../application/ports/update-logger.port";
 import type { ChatMessage } from "../../domain/chat-message.entity";
 import type { BotCommand } from "../../domain/bot-command.entity";
+import { MESSAGE_COLUMNS, toStoredMessage } from "./chat-history.rows";
 
 const CHATS_TABLE = "chats";
 const MESSAGES_TABLE = "messages";
@@ -12,7 +15,7 @@ const MESSAGES_TABLE = "messages";
 // @supabase/supabase-js directly, whose import path differs between Node and Deno — see
 // supabase/functions/_shared/modules/bot/adapters/out/supabase-update-logger.adapter.ts for
 // the edge-function counterpart.
-export class SupabaseUpdateLoggerAdapter implements UpdateLoggerPort {
+export class SupabaseUpdateLoggerAdapter implements UpdateLoggerPort, OutgoingMessageStorePort {
   constructor(private readonly client: SupabaseClient) {}
 
   async logMessage(message: ChatMessage): Promise<void> {
@@ -36,6 +39,21 @@ export class SupabaseUpdateLoggerAdapter implements UpdateLoggerPort {
   // written to the `messages` table.
   async logCommand(command: BotCommand): Promise<void> {
     console.log("[bot] command:", `/${command.name}`, command.args);
+  }
+
+  // Stored as a row with no user text, only the bot's side filled in: logReply() never
+  // picks it (reply_text is already set) and the touch_chat_last_message trigger still
+  // moves the chat to the top of the list.
+  async saveOutgoing(chatId: number, text: string): Promise<StoredMessage> {
+    const now = new Date().toISOString();
+    const { data, error } = await this.client
+      .from(MESSAGES_TABLE)
+      .insert({ chat_id: chatId, text: null, reply_text: text, replied_at: now, created_at: now })
+      .select(MESSAGE_COLUMNS)
+      .single();
+    if (error) throw new Error(`Failed to persist outgoing message: ${error.message}`);
+
+    return toStoredMessage(data);
   }
 
   async logReply(chatId: number, text: string): Promise<void> {

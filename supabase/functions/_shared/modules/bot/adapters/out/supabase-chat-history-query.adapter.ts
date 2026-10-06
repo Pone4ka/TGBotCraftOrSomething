@@ -1,6 +1,7 @@
 import type {
   ChatHistoryQueryPort,
   ChatSummary,
+  ListMessagesFilter,
   StoredMessage,
 } from "../../application/ports/chat-history-query.port.ts";
 import { getSupabaseClient } from "../../../../core/supabase/supabase-client.ts";
@@ -16,24 +17,35 @@ export class SupabaseChatHistoryQueryAdapter implements ChatHistoryQueryPort {
   async listChats(): Promise<ChatSummary[]> {
     const { data, error } = await getSupabaseClient()
       .from(CHATS_TABLE)
-      .select("chat_id, first_name, last_name, last_message_at, created_at")
-      .order("last_message_at", { ascending: false, nullsFirst: false });
+      // Embeds only the latest message of each chat, for the last-message preview.
+      .select("chat_id, first_name, last_name, last_message_at, created_at, messages(text, reply_text)")
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false, referencedTable: MESSAGES_TABLE })
+      .limit(1, { referencedTable: MESSAGES_TABLE });
     if (error) throw new Error(`Failed to list chats: ${error.message}`);
 
-    return (data ?? []).map((row) => ({
-      chatId: row.chat_id,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      lastMessageAt: row.last_message_at,
-      createdAt: row.created_at,
-    }));
+    return (data ?? []).map((row) => {
+      const latest = row.messages?.[0];
+      return {
+        chatId: row.chat_id,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        lastMessageAt: row.last_message_at,
+        createdAt: row.created_at,
+        // A reply is always newer than the message it answers.
+        lastMessageText: latest ? (latest.reply_text ?? latest.text) : null,
+        lastMessageFromBot: latest?.reply_text != null,
+      };
+    });
   }
 
-  async listMessages(): Promise<StoredMessage[]> {
-    const { data, error } = await getSupabaseClient()
+  async listMessages(filter: ListMessagesFilter = {}): Promise<StoredMessage[]> {
+    let query = getSupabaseClient()
       .from(MESSAGES_TABLE)
-      .select("id, chat_id, text, created_at, reply_text, replied_at")
-      .order("created_at", { ascending: false });
+      .select("id, chat_id, text, created_at, reply_text, replied_at");
+    if (filter.chatId !== undefined) query = query.eq("chat_id", filter.chatId);
+
+    const { data, error } = await query.order("created_at", { ascending: false });
     if (error) throw new Error(`Failed to list messages: ${error.message}`);
 
     return (data ?? []).map((row) => ({

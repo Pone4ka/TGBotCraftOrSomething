@@ -119,12 +119,28 @@
 
 ## `adapters/in/chat-history.controller.ts`
 
-**`registerChatHistoryRoutes(app, listChats, listMessages)`** — монтирует на Fastify-инстанс:
+**`registerChatHistoryRoutes(app, deps)`** — монтирует на Fastify-инстанс:
 
-- `GET /chats` → `ListChatsUseCase.execute()` — все чаты, новые сверху (`ORDER BY last_message_at DESC`).
-- `GET /messages` → `ListMessagesUseCase.execute()` — все сообщения, новые сверху (`ORDER BY created_at DESC`), с полями `replyText`/`repliedAt`, если бот уже ответил.
+- `GET /chats` → `ListChatsUseCase` — все чаты, новые сверху (`ORDER BY last_message_at DESC`), с превью последнего сообщения (`lastMessageText`, `lastMessageFromBot`).
+- `GET /messages` → `ListMessagesUseCase` — все сообщения, новые сверху (`ORDER BY created_at DESC`), с полями `replyText`/`repliedAt`, если бот уже ответил. `GET /messages?chatId=…` — только сообщения одного чата.
+- `POST /chats/:chatId/messages` (`{ "text": "…" }`) → `SendOperatorMessageUseCase` — отправить пользователю сообщение от лица бота. `201` + `StoredMessage`; `400` — пустой текст/кривой `chatId`; `502` — Telegram отказал (пользователь заблокировал бота и т.п., `MessageDeliveryFailedException`).
+- `GET /events` → `WatchChatHistoryUseCase` — поток **Server-Sent Events**: событие `chat` (`ChatSummary`) и `message` (`StoredMessage`) на каждую вставку/изменение в `chats`/`messages`. SSE, а не WebSocket, потому что данные идут только сервер → браузер (отправка — обычный POST), а `EventSource` сам переподключается. Каждые 25 с шлётся комментарий-пинг, чтобы прокси не рвали тихое соединение.
 
 Не входит в `SHARED_FILES` — Fastify-специфичная обвязка; у edge-функций свои точки входа (`functions/chats/index.ts`, `functions/messages/index.ts`), см. [`edge-functions.md`](./edge-functions.md).
+
+### `operator-ui.controller.ts` — панель оператора
+
+**`registerOperatorUiRoutes(app)`** — отдаёт статику из `web/operator/` (`index.html`, `app.js`, `styles.css`) по адресу **`/operator`**. Это интерфейс в стиле Telegram: слева список чатов (кто писал боту, новые сверху, поиск по имени/ID), справа переписка и поле ввода снизу — Enter отправляет, Shift+Enter переносит строку. Обновляется сам через `GET /events`; при каждом (пере)подключении перечитывает `/chats` и открытый чат, чтобы не потерять события, пришедшие во время обрыва. Без сборки и зависимостей — обычный JS, файлы читаются на каждый запрос, так что правки видны без перезапуска.
+
+**Внимание:** ни панель, ни эти роуты не защищены авторизацией — как и раньше `GET /chats`/`GET /messages`. Не выставляйте Node-приложение в интернет как есть.
+
+### Откуда приходят живые обновления
+
+`SupabaseRealtimeChatHistoryChangesAdapter` (`adapters/out/`) подписывается на изменения таблиц `chats`/`messages` через **Supabase Realtime** (миграция `..._operator_messages.sql` добавляет их в публикацию `supabase_realtime`). Через базу, а не через внутрипроцессную шину событий — чтобы видеть и записи edge-функции `bot`, когда вебхук Telegram смотрит туда, а не только записи этого Node-процесса. Один канал на процесс, раздаётся всем открытым вкладкам. Каждое изменение перечитывается через `SupabaseChatHistoryQueryAdapter.getChat/getMessage`, так что в SSE уходит ровно та же форма, что отдают `GET /chats` и `GET /messages`.
+
+### Как хранится сообщение оператора
+
+`GrammyBotMessageSenderAdapter` отправляет текст через **отдельный** экземпляр `Api` — без API-трансформера захвата ответов (см. ниже), иначе сообщение оператора прицепилось бы как ответ к последнему неотвеченному сообщению пользователя. Сохраняет его `SupabaseUpdateLoggerAdapter.saveOutgoing` (порт `OutgoingMessageStorePort`) отдельной строкой `messages` с `text = null` и заполненными `reply_text`/`replied_at`: `logReply` такую строку не тронет (`reply_text` уже задан), а триггер `touch_chat_last_message` поднимет чат наверх списка. Сначала доставка, потом запись — отклонённое Telegram сообщение в истории не появится.
 
 ## `application/ports/`
 
@@ -134,7 +150,11 @@
 
 ### `chat-history-query.port.ts`
 
-**`ChatHistoryQueryPort`** — интерфейс: `listChats(): Promise<ChatSummary[]>`, `listMessages(): Promise<StoredMessage[]>`. Только Postgres-реализация — in-memory аналога нет, история переписки не существует, пока не сохранена.
+**`ChatHistoryQueryPort`** — интерфейс: `listChats(): Promise<ChatSummary[]>`, `listMessages(filter?: { chatId? }): Promise<StoredMessage[]>`. Только Postgres-реализация — in-memory аналога нет, история переписки не существует, пока не сохранена. `StoredMessage.text` может быть `null` — это сообщение, отправленное оператором (см. выше).
+
+### `chat-history-changes.port.ts`, `bot-message-sender.port.ts`, `outgoing-message-store.port.ts`
+
+Порты панели оператора, только для Node (не входят в `SHARED_FILES`): `ChatHistoryChangesPort.subscribe(listener)` — поток изменений истории; `BotMessageSenderPort.sendText(chatId, text)` — доставка в Telegram; `OutgoingMessageStorePort.saveOutgoing(chatId, text)` — запись отправленного.
 
 ## `application/use-cases/` — сценарии использования
 
@@ -152,7 +172,7 @@
 
 ### `list-chats.use-case.ts` / `list-messages.use-case.ts`
 
-**`ListChatsUseCase.execute()`** / **`ListMessagesUseCase.execute()`** — тонкие обёртки над `ChatHistoryQueryPort.listChats()`/`listMessages()`, по образцу `GetStudentInfoUseCase` (см. [`student`-модуль]): вся логика — в адаптере, use-case существует, чтобы у контроллера была единая точка входа, а не прямая зависимость от Postgres-адаптера.
+**`ListChatsUseCase.execute()`** / **`ListMessagesUseCase.execute(filter?)`** — тонкие обёртки над `ChatHistoryQueryPort.listChats()`/`listMessages()`, по образцу `GetStudentInfoUseCase` (см. [`student`-модуль]): вся логика — в адаптере, use-case существует, чтобы у контроллера была единая точка входа, а не прямая зависимость от Postgres-адаптера.
 
 ## Захват ответов бота (`bot.module.ts`)
 

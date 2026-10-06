@@ -48,6 +48,13 @@ export class BotLifecycleService {
     this.deps.menuController.registerFallback(bot);
     await bot.init();
 
+    if (!config.receiveUpdates) {
+      // Someone else (the `bot` edge function) owns the webhook — leave it, and the
+      // command menu it registers, untouched. Outgoing operator messages still work.
+      console.log("BOT_RECEIVE_UPDATES=false: not receiving Telegram updates");
+      return;
+    }
+
     await bot.api.setMyCommands([
       { command: "start", description: "Показать меню режимов" },
       { command: "currency", description: "Режим: конвертация валют" },

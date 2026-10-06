@@ -2,8 +2,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   ChatHistoryQueryPort,
   ChatSummary,
+  ListMessagesFilter,
   StoredMessage,
 } from "../../application/ports/chat-history-query.port";
+import {
+  CHAT_WITH_PREVIEW_COLUMNS,
+  LATEST_MESSAGE_ONLY,
+  MESSAGE_COLUMNS,
+  toChatSummary,
+  toStoredMessage,
+} from "./chat-history.rows";
 
 const CHATS_TABLE = "chats";
 const MESSAGES_TABLE = "messages";
@@ -18,33 +26,46 @@ export class SupabaseChatHistoryQueryAdapter implements ChatHistoryQueryPort {
   async listChats(): Promise<ChatSummary[]> {
     const { data, error } = await this.client
       .from(CHATS_TABLE)
-      .select("chat_id, first_name, last_name, last_message_at, created_at")
-      .order("last_message_at", { ascending: false, nullsFirst: false });
+      .select(CHAT_WITH_PREVIEW_COLUMNS)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false, ...LATEST_MESSAGE_ONLY })
+      .limit(1, LATEST_MESSAGE_ONLY);
     if (error) throw new Error(`Failed to list chats: ${error.message}`);
 
-    return (data ?? []).map((row) => ({
-      chatId: row.chat_id,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      lastMessageAt: row.last_message_at,
-      createdAt: row.created_at,
-    }));
+    return (data ?? []).map(toChatSummary);
   }
 
-  async listMessages(): Promise<StoredMessage[]> {
+  async getChat(chatId: number): Promise<ChatSummary | null> {
     const { data, error } = await this.client
-      .from(MESSAGES_TABLE)
-      .select("id, chat_id, text, created_at, reply_text, replied_at")
-      .order("created_at", { ascending: false });
+      .from(CHATS_TABLE)
+      .select(CHAT_WITH_PREVIEW_COLUMNS)
+      .eq("chat_id", chatId)
+      .order("created_at", { ascending: false, ...LATEST_MESSAGE_ONLY })
+      .limit(1, LATEST_MESSAGE_ONLY)
+      .maybeSingle();
+    if (error) throw new Error(`Failed to load chat ${chatId}: ${error.message}`);
+
+    return data ? toChatSummary(data) : null;
+  }
+
+  async listMessages(filter: ListMessagesFilter = {}): Promise<StoredMessage[]> {
+    let query = this.client.from(MESSAGES_TABLE).select(MESSAGE_COLUMNS);
+    if (filter.chatId !== undefined) query = query.eq("chat_id", filter.chatId);
+
+    const { data, error } = await query.order("created_at", { ascending: false });
     if (error) throw new Error(`Failed to list messages: ${error.message}`);
 
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      chatId: row.chat_id,
-      text: row.text,
-      createdAt: row.created_at,
-      replyText: row.reply_text,
-      repliedAt: row.replied_at,
-    }));
+    return (data ?? []).map(toStoredMessage);
+  }
+
+  async getMessage(id: number): Promise<StoredMessage | null> {
+    const { data, error } = await this.client
+      .from(MESSAGES_TABLE)
+      .select(MESSAGE_COLUMNS)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(`Failed to load message ${id}: ${error.message}`);
+
+    return data ? toStoredMessage(data) : null;
   }
 }

@@ -5,8 +5,8 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/main.js",
-    "start:dev": "tsx watch src/main.ts",
+    "start": "node --env-file-if-exists=.env dist/main.js",
+    "start:dev": "tsx watch --env-file-if-exists=.env src/main.ts",
     "sync:edge": "node scripts/generate-edge-shared.mjs"
   },
   "dependencies": {

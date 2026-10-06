@@ -12,7 +12,7 @@
 3. `new InMemoryUserModeAdapter()` — общий на все модули экземпляр, создаётся один раз.
 4. `createHttpServer()` — поднимает Fastify, сразу регистрирует health-роуты.
 5. `createCurrencyModule(...)`, `createStudentModule(...)` — собирают модули; `student` дополнительно регистрирует свой HTTP-роут на общий Fastify-инстанс.
-6. `createBotModule(...)` — собирает бота (в том числе HTTP-роуты `GET /chats`/`GET /messages`), отдаёт `{ start(), stop() }`.
+6. `createBotModule(...)` — собирает бота (в том числе HTTP-роуты истории переписки, SSE-поток `GET /events` и панель оператора `/operator`), отдаёт `{ start(), stop() }`.
 7. `await bot.start()` — регистрирует Telegram-обработчики и (если задан `WEBHOOK_URL`) монтирует вебхук-роут на Fastify **до** того, как сервер начнёт слушать порт.
 8. `await httpServer.listen(...)` — сервер начинает слушать `0.0.0.0:PORT` (важно для контейнеров/облака).
 9. Подписка на `SIGINT`/`SIGTERM` — корректно останавливает polling (`bot.stop()`) и Fastify (`httpServer.close()`) перед выходом.

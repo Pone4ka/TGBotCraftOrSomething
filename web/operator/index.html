@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Чаты бота</title>
+  <link rel="stylesheet" href="/operator/styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <input class="search" id="search" type="search" placeholder="Поиск" autocomplete="off">
+        <span class="connection" id="connection" title="Подключение…"></span>
+      </header>
+      <ul class="chat-list" id="chat-list"></ul>
+      <p class="chat-list-empty" id="chat-list-empty" hidden>Боту ещё никто не писал</p>
+    </aside>
+
+    <main class="conversation" id="conversation">
+      <div class="placeholder" id="placeholder">
+        <span>Выберите, кому хотели бы написать</span>
+      </div>
+
+      <section class="chat" id="chat" hidden>
+        <header class="chat-header">
+          <button class="back" id="back" type="button" aria-label="Назад к списку">&#8592;</button>
+          <div class="avatar" id="chat-avatar"></div>
+          <div class="chat-title">
+            <div class="chat-name" id="chat-name"></div>
+            <div class="chat-meta" id="chat-meta"></div>
+          </div>
+        </header>
+
+        <div class="messages" id="messages"></div>
+
+        <form class="composer" id="composer">
+          <textarea id="composer-input" rows="1" placeholder="Сообщение от лица бота…" maxlength="4096"></textarea>
+          <button class="send" id="send" type="submit" aria-label="Отправить" disabled>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path fill="currentColor" d="M3.4 20.4 21.85 12.5a.55.55 0 0 0 0-1L3.4 3.6a.5.5 0 0 0-.7.6L5 11l9 1-9 1-2.3 6.8a.5.5 0 0 0 .7.6z"/>
+            </svg>
+          </button>
+        </form>
+        <div class="composer-error" id="composer-error" hidden></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/operator/app.js"></script>
+</body>
+</html>

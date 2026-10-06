@@ -6,6 +6,7 @@ export interface Config {
   readonly supabaseServiceRoleKey?: string;
   readonly webhookUrl?: string;
   readonly webhookSecret?: string;
+  readonly receiveUpdates: boolean;
   readonly pollIntervalMs: number;
   readonly port: number;
 }
@@ -35,6 +36,10 @@ export function loadConfig(): Config {
     // Only required when webhooks are actually enabled; fail fast at startup
     // rather than the first time setUpWebhook() runs.
     webhookSecret: webhookUrl ? requireEnv("WEBHOOK_SECRET") : process.env.WEBHOOK_SECRET,
+    // false = don't take Telegram updates at all (neither webhook nor polling), e.g. to run
+    // only the operator panel locally while production updates go to the `bot` edge
+    // function — polling would call deleteWebhook and silence it.
+    receiveUpdates: process.env.BOT_RECEIVE_UPDATES !== "false",
     pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 3000),
     port: Number(process.env.PORT ?? 3000),
   };
